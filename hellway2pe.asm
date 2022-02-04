@@ -179,6 +179,8 @@ ScoreFontColor=$D5
 ScoreFontColorHoldChange=$D6
 NextCheckpoint=$D7
 
+OpponentLine = $D8
+
 
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
@@ -234,7 +236,7 @@ SettingTrafficOffsets; Time sensitive with player H position
 	LDA TrafficSpeeds + 4 * 2 ; Same as the line he is in.
 	STA Player0SpeedL
 	
-	SLEEP 11;18
+	;SLEEP 11;18
 	STA RESP0
 		
 	LDX #0
@@ -293,11 +295,8 @@ HPositioning
 	LDA #INITIAL_COUNTDOWN_TIME ;2
 	STA CountdownTimer ;3
 
-	LDA #CHECKPOINT_INTERVAL
-	STA NextCheckpoint
-
 	LDA #0 ; Avoid missile reseting position 
-	SLEEP 11;
+	SLEEP 6;
 	STA RESP1
 	SLEEP 2;
 	STA RESBL
@@ -305,6 +304,9 @@ HPositioning
 	STA RESM0
 	SLEEP 2
 	STA RESM1
+
+    LDA #CHECKPOINT_INTERVAL
+	STA NextCheckpoint
 
 	LDA #$F0
 	STA HMBL
@@ -572,6 +574,10 @@ CalculateOffsetCache
 	SEC
 	ADC #0 ;Increment by one
 	STA TrafficOffset0,X ; cache of the other possible value for the MSB in the frame, make drawing faster.
+
+ConfigureOpponentLine ; Temporary
+    LDA #30 ; Extract to constant
+    STA OpponentLine
 
 PrepareNextUpdateLoop
 	INY
@@ -1133,25 +1139,37 @@ SkipDrawCar
 	STA ENAM0Cache ;3
 	STA ENAM1Cache; 3
 
+DrawOponent
+    STY Tmp0
+    LDY OpponentLine
+    CPY #CAR_START_LINE ;3
+    BCS SkipDrawOpponent 
+DrawOpponent
+    LDA (CarSpritePointerL),Y
+    STA GRP1Cache
+SkipDrawOpponent
+    DEC OpponentLine
+    LDY Tmp0
+
 	;BEQ DrawTraffic3
-DrawTraffic1; 33
-	TYA; 2
-	CLC; 2 
-	ADC TrafficOffset1 + 1;3
-	AND #TRAFFIC_1_MASK ;2 ;#%11111000
-	BCS EorOffsetWithCarry; 2(worse not to jump), 4 if branch
-	EOR TrafficOffset1 + 2 ; 3
-	JMP AfterEorOffsetWithCarry ; 3
-EorOffsetWithCarry
-	EOR TrafficOffset1 + 3 ; 3
-AfterEorOffsetWithCarry ;17
-	TAX ;2
-	LDA AesTable,X ; 4
-	CMP TrafficChance;3
-	BCS FinishDrawTraffic1 ; 2
-	LDA #$FF ;2
-	STA GRP1Cache ;3
-FinishDrawTraffic1
+; DrawTraffic1; 33
+; 	TYA; 2
+; 	CLC; 2 
+; 	ADC TrafficOffset1 + 1;3
+; 	AND #TRAFFIC_1_MASK ;2 ;#%11111000
+; 	BCS EorOffsetWithCarry; 2(worse not to jump), 4 if branch
+; 	EOR TrafficOffset1 + 2 ; 3
+; 	JMP AfterEorOffsetWithCarry ; 3
+; EorOffsetWithCarry
+; 	EOR TrafficOffset1 + 3 ; 3
+; AfterEorOffsetWithCarry ;17
+; 	TAX ;2
+; 	LDA AesTable,X ; 4
+; 	CMP TrafficChance;3
+; 	BCS FinishDrawTraffic1 ; 2
+; 	LDA #$FF ;2
+; 	STA GRP1Cache ;3
+; FinishDrawTraffic1
 
 DrawTraffic2; 33
 	TYA; 2
@@ -1214,12 +1232,12 @@ AfterEorOffsetWithCarry4 ;17
 	STA ENAM1Cache	;3
 FinishDrawTraffic4
 
-DrawTraffic0; 20 / 22 2pe
+DrawTraffic0; 21 2pe
     TYA; 2
 	CLC; 2 
 	ADC TrafficOffset0 + 1 ;3
     AND #%00000100 ;2
-    BEQ HasNoBorderP0 ;4
+    BEQ HasNoBorderP0 ;3
 HasBorderP0
     LDA #$F0 ; 2
     JMP StoreBorderP0 ; 3
