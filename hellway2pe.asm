@@ -282,31 +282,35 @@ ConfigureOneSecondTimer
 	LDA #ONE_SECOND_FRAMES
 	STA OneSecondConter
 
-HPositioning
-	STA WSYNC
+ConfigureTimer
+    LDA #INITIAL_COUNTDOWN_TIME ;2
+	STA CountdownTimer ;3
 
-	LDA #%00110000;2 Missile Size
+ConfigurePlayerXPosition
+    LDA #PLAYER_0_X_START ;2
+	STA Player0X ;3
+
+ConfigureMissileSize
+    LDA #%00110000;2 Missile Size
 	STA NUSIZ0 ;3
 	STA NUSIZ1 ;3
 
-	LDA #PLAYER_0_X_START ;2
-	STA Player0X ;3
+ConfigureNextCheckpoint
+    LDA #CHECKPOINT_INTERVAL
+	STA NextCheckpoint
 
-	LDA #INITIAL_COUNTDOWN_TIME ;2
-	STA CountdownTimer ;3
+HPositioning
+	STA WSYNC
 
+    Sleep 20
 	LDA #0 ; Avoid missile reseting position 
-	SLEEP 6;
-	STA RESP1
-	SLEEP 2;
+	SLEEP 5;
 	STA RESBL
 	SLEEP 2;
 	STA RESM0
 	SLEEP 2
 	STA RESM1
-
-    LDA #CHECKPOINT_INTERVAL
-	STA NextCheckpoint
+    STA RESP1
 
 	LDA #$F0
 	STA HMBL
@@ -1139,37 +1143,37 @@ SkipDrawCar
 	STA ENAM0Cache ;3
 	STA ENAM1Cache; 3
 
-DrawOponent
-    STY Tmp0
-    LDY OpponentLine
-    CPY #CAR_START_LINE ;3
-    BCS SkipDrawOpponent 
+DrawOponent ;26
+    STY Tmp0 ;3
+    LDY OpponentLine ;3
+    CPY #CAR_START_LINE;2
+    BCS SkipDrawOpponent ;2
 DrawOpponent
-    LDA (CarSpritePointerL),Y
-    STA GRP1Cache
+    LDA (CarSpritePointerL),Y ;5
+    STA GRP1Cache ;3
 SkipDrawOpponent
-    DEC OpponentLine
-    LDY Tmp0
+    DEC OpponentLine ;5
+    LDY Tmp0 ;3
 
 	;BEQ DrawTraffic3
-; DrawTraffic1; 33
-; 	TYA; 2
-; 	CLC; 2 
-; 	ADC TrafficOffset1 + 1;3
-; 	AND #TRAFFIC_1_MASK ;2 ;#%11111000
-; 	BCS EorOffsetWithCarry; 2(worse not to jump), 4 if branch
-; 	EOR TrafficOffset1 + 2 ; 3
-; 	JMP AfterEorOffsetWithCarry ; 3
-; EorOffsetWithCarry
-; 	EOR TrafficOffset1 + 3 ; 3
-; AfterEorOffsetWithCarry ;17
-; 	TAX ;2
-; 	LDA AesTable,X ; 4
-; 	CMP TrafficChance;3
-; 	BCS FinishDrawTraffic1 ; 2
-; 	LDA #$FF ;2
-; 	STA GRP1Cache ;3
-; FinishDrawTraffic1
+DrawTraffic1; 33
+	TYA; 2
+	CLC; 2 
+	ADC TrafficOffset1 + 1;3
+	AND #TRAFFIC_1_MASK ;2 ;#%11111000
+	BCS EorOffsetWithCarry; 2(worse not to jump), 4 if branch
+	EOR TrafficOffset1 + 2 ; 3
+	JMP AfterEorOffsetWithCarry ; 3
+EorOffsetWithCarry
+	EOR TrafficOffset1 + 3 ; 3
+AfterEorOffsetWithCarry ;17
+	TAX ;2
+	LDA AesTable,X ; 4
+	CMP TrafficChance;3
+	BCS FinishDrawTraffic1 ; 2
+	LDA #$FF ;2
+	STA ENABLCache ;3
+FinishDrawTraffic1
 
 DrawTraffic2; 33
 	TYA; 2
@@ -1187,7 +1191,7 @@ AfterEorOffsetWithCarry2 ;17
 	CMP TrafficChance;3
 	BCS FinishDrawTraffic2 ; 2
 	LDA #%00000010 ;2
-	STA ENABLCache;3
+	STA ENAM0Cache;3
 FinishDrawTraffic2	
 
 	;STA WSYNC ;65 / 137
@@ -1210,27 +1214,27 @@ AfterEorOffsetWithCarry3 ;17
 	CMP TrafficChance;3
 	BCS FinishDrawTraffic3 ; 2 
 	LDA #%00000010 ;2
-	STA ENAM0Cache
+	STA ENAM1Cache
 FinishDrawTraffic3	
 	
-DrawTraffic4; 33
-	TYA; 2
-	CLC; 2 
-	ADC TrafficOffset4 + 1;3
-	AND #TRAFFIC_1_MASK ;2
-	BCS EorOffsetWithCarry4; 4 max if branch max, 2 otherwise
-	EOR TrafficOffset4 + 2 ; 3
-	JMP AfterEorOffsetWithCarry4 ; 3
-EorOffsetWithCarry4
-	EOR TrafficOffset4 + 3 ; 3
-AfterEorOffsetWithCarry4 ;17
-	TAX ;2
-	LDA AesTable,X ; 4
-	CMP TrafficChance;3
-	BCS FinishDrawTraffic4 ; 2
-	LDA #%00000010 ;2
-	STA ENAM1Cache	;3
-FinishDrawTraffic4
+; DrawTraffic4; 33
+; 	TYA; 2
+; 	CLC; 2 
+; 	ADC TrafficOffset4 + 1;3
+; 	AND #TRAFFIC_1_MASK ;2
+; 	BCS EorOffsetWithCarry4; 4 max if branch max, 2 otherwise
+; 	EOR TrafficOffset4 + 2 ; 3
+; 	JMP AfterEorOffsetWithCarry4 ; 3
+; EorOffsetWithCarry4
+; 	EOR TrafficOffset4 + 3 ; 3
+; AfterEorOffsetWithCarry4 ;17
+; 	TAX ;2
+; 	LDA AesTable,X ; 4
+; 	CMP TrafficChance;3
+; 	BCS FinishDrawTraffic4 ; 2
+; 	LDA #%00000010 ;2
+; 	STA ENAM1Cache	;3
+; FinishDrawTraffic4
 
 DrawTraffic0; 21 2pe
     TYA; 2
@@ -1245,7 +1249,7 @@ HasNoBorderP0
     LDA #0 ; 2
 StoreBorderP0
     STA PF0Cache ; 3
-    ;STA PF2Cache ; 3
+    STA PF2Cache ; 3
 
 
 SkipDrawTraffic0
