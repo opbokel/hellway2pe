@@ -23,7 +23,7 @@ CAR_MAX_SPEED_H = $02; L is in a table
 
 CAR_MIN_SPEED_H = 0
 CAR_MIN_SPEED_L = 0
-CAR_START_LINE = 14 ; Exclusive
+CAR_START_LINE = 15 ; Exclusive
 
 CAR_ID_DEFAULT = 0
 CAR_ID_HATCHBACK = 1
@@ -181,6 +181,9 @@ NextCheckpoint=$D7
 
 OpponentLine = $D8
 
+EnemyCarSpritePointerL = $D9
+EnemyCarSpritePointerH = $DA
+
 
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
@@ -274,6 +277,13 @@ ConfigureCarSprite
 	LDA CarIdToSpriteAddressH,Y
 	STA CarSpritePointerH
 
+ConfigureEnemyCarSprite
+	LDY CurrentCarId
+	LDA EnemyCarIdToSpriteAddressL,Y
+	STA EnemyCarSpritePointerL
+	LDA EnemyCarIdToSpriteAddressH,Y
+	STA EnemyCarSpritePointerH
+
 SetGameNotRunning
 	LDA #0
 	STA GameStatus
@@ -285,6 +295,9 @@ ConfigureOneSecondTimer
 ConfigureTimer
     LDA #INITIAL_COUNTDOWN_TIME ;2
 	STA CountdownTimer ;3
+
+HPositioning ; Avoid sleep doing needed stuff
+	STA WSYNC
 
 ConfigurePlayerXPosition
     LDA #PLAYER_0_X_START ;2
@@ -299,10 +312,6 @@ ConfigureNextCheckpoint
     LDA #CHECKPOINT_INTERVAL
 	STA NextCheckpoint
 
-HPositioning
-	STA WSYNC
-
-    Sleep 20
 	LDA #0 ; Avoid missile reseting position 
 	SLEEP 5;
 	STA RESBL
@@ -329,7 +338,7 @@ MainLoop
 	LDA #2
 	STA VSYNC	
 	STA WSYNC
-
+    STA HMOVE  ;2 Apply Movement, must be done after a WSYNC
 CalculateTextSide ; Here because it is a waste of cycles not to put anything
 	LDA #%00000001
 	BIT TextFlickerMode
@@ -340,9 +349,27 @@ TextSideFrameZero
 	AND FrameCount0
 StoreTextSize	
 	STA TextSide
+	STA WSYNC	
+    ;STA HMOVE			
+    STA HMCLR
+    
+; SetHMove
+;     LDA FrameCount0 ;3
+; 	AND #%00000001 ;2
+;     BEQ MoveAllRight
+; MoveAllLeft
+;     LDA #$70
+;     JMP StoreMoveAllValues
+; MoveAllRight
+;     LDA #$90
 
-	STA WSYNC					;Apply Movement, must be done after a WSYNC
-	STA HMOVE  ;2
+; StoreMoveAllValues
+;     STA HMBL
+; 	STA HMM0
+; 	STA HMM1
+	; STA HMP0
+	; STA HMP1
+
 ConfigVBlankTimer
 	LDA GameMode
 	CMP #MAX_GAME_MODE
@@ -351,6 +378,7 @@ ConfigVBlankTimer
 	JMP SetVblankTimer
 SetVblankTimerQrCode
 	LDA #VBLANK_TIMER_QR_CODE
+
 SetVblankTimer
 	STA WSYNC ;3
 	STA TIM64T ;3	
@@ -385,7 +413,7 @@ DeterministicGame
 	JSR DefaultOffsets
 
 EndRandomizeGame
-	
+
 CountFrame	
 	INC FrameCount0 ; 5
 	BNE SkipIncFC1 ; 2 When it is zero again should increase the MSB
@@ -580,7 +608,7 @@ CalculateOffsetCache
 	STA TrafficOffset0,X ; cache of the other possible value for the MSB in the frame, make drawing faster.
 
 ConfigureOpponentLine ; Temporary
-    LDA #30 ; Extract to constant
+    LDA #55 ; Extract to constant
     STA OpponentLine
 
 PrepareNextUpdateLoop
@@ -675,6 +703,8 @@ ResetPlayerSize
 	LDA #%00110000
 	STA NUSIZ0;
 FinishResetPlayerSize
+
+    ;STA HMCLR ; Do not double move car.
 
 ResetPlayerPosition ;For 1 frame, he will not colide, but will have the origina size
 	CPY #1 ; Last frame before reset
@@ -1083,7 +1113,7 @@ PrepareForTraffic
 	STA WSYNC
 	STA WSYNC
 
-	LDA #%00110001 ; 2 Score mode
+	LDA #%00110000 ; 2 Score mode
 	STA CTRLPF ;3
 	
 	LDA TrafficColor ;3
@@ -1114,16 +1144,10 @@ ScanLoop
 DrawCache ;63 Is the last line going to the top of the next frame?
 	LDA PF0Cache ;3
 	STA PF0	     ;3
-
-	LDA PF2Cache ;3
-	STA PF2	     ;3
-
-	CPY #CAR_START_LINE ;2 ;Saves memory and still fast
-	BCS SkipDrawCar;2
-	LDA (CarSpritePointerL),Y ;5 ;Very fast, in the expense of rom space
-	STA GRP0      ;3   ;put it as graphics now
-SkipDrawCar
 	
+	LDA GRP0Cache ;3
+	STA GRP0      ;3
+
 	LDA GRP1Cache ;3
 	STA GRP1      ;3
 
@@ -1136,24 +1160,23 @@ SkipDrawCar
 	LDA ENAM1Cache  ;3
 	STA ENAM1 ;3
 
+	LDA PF2Cache ;3
+	STA PF2	     ;3
+
 	LDA #0		 ;2
-	;STA PF1Cache ;3
+    STA PF0	     ;3
 	STA GRP1Cache ;3
 	STA ENABLCache ;3
 	STA ENAM0Cache ;3
 	STA ENAM1Cache; 3
+    STA PF2	     ;3
 
-DrawOponent ;26
-    STY Tmp0 ;3
-    LDY OpponentLine ;3
-    CPY #CAR_START_LINE;2
-    BCS SkipDrawOpponent ;2
-DrawOpponent
-    LDA (CarSpritePointerL),Y ;5
-    STA GRP1Cache ;3
-SkipDrawOpponent
-    DEC OpponentLine ;5
-    LDY Tmp0 ;3
+DrawCar0
+	CPY #CAR_START_LINE ;2 ;Saves memory and still fast
+	BCS SkipDrawCar;2
+	LDA (CarSpritePointerL),Y ;5 ;Very fast, in the expense of rom space
+	STA GRP0Cache      ;3   ;put it as graphics now
+SkipDrawCar
 
 	;BEQ DrawTraffic3
 DrawTraffic1; 33
@@ -1236,21 +1259,35 @@ FinishDrawTraffic3
 ; 	STA ENAM1Cache	;3
 ; FinishDrawTraffic4
 
+DrawOponent ;26
+    STY Tmp0 ;3
+    LDY OpponentLine ;3
+    CPY #(CAR_START_LINE - 7);2
+    BCS SkipDrawOpponent ;2
+DrawOpponent
+    LDA (EnemyCarSpritePointerL),Y ;5
+    STA GRP1Cache ;3
+    DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
+    LDY Tmp0 ;3
+    JMP SkipDrawTraffic0 ; Do not draw border to save cycles
+SkipDrawOpponent
+    DEC OpponentLine ;5
+    LDY Tmp0 ;3
+
 DrawTraffic0; 21 2pe
     TYA; 2
 	CLC; 2 
 	ADC TrafficOffset0 + 1 ;3
-    AND #%00000100 ;2
+    AND #%00001000 ;2
     BEQ HasNoBorderP0 ;3
 HasBorderP0
-    LDA #$F0 ; 2
+    LDA #%11110000 ; 2
     JMP StoreBorderP0 ; 3
 HasNoBorderP0
     LDA #0 ; 2
 StoreBorderP0
     STA PF0Cache ; 3
     STA PF2Cache ; 3
-
 
 SkipDrawTraffic0
 
@@ -2671,7 +2708,8 @@ VersionText
 EndStaticText
 
 CarSprite0 ; Upside down, Original Car
-	ds 7
+	ds (CAR_START_LINE - 7)
+CarSprite0NoPadding
 	.byte #%01111110
 	.byte #%00100100
 	.byte #%10111101
@@ -2680,7 +2718,8 @@ CarSprite0 ; Upside down, Original Car
 	.byte #%00111100
 
 CarSprite1 ; Car variant posted by KevinMos3 (AtariAge), thanks!
-	ds 7
+	ds (CAR_START_LINE - 7)
+CarSprite1NoPadding
 	.byte #%10111101
 	.byte #%01111110
 	.byte #%01011010
@@ -2689,7 +2728,8 @@ CarSprite1 ; Car variant posted by KevinMos3 (AtariAge), thanks!
 	.byte #%00111100
 
 CarSprite2 ; Car variant posted by TIX (AtariAge), his normal car, thanks!
-	ds 7
+	ds (CAR_START_LINE - 7)
+CarSprite2NoPadding
 	.byte #%01111110
 	.byte #%10100101
 	.byte #%01000010
@@ -2698,7 +2738,8 @@ CarSprite2 ; Car variant posted by TIX (AtariAge), his normal car, thanks!
 	.byte #%01111110
 
 CarSprite3 ; Car variant posted by TIX (AtariAge), dragster, thanks!
-	ds 7
+	ds (CAR_START_LINE - 7)
+CarSprite3NoPadding
 	.byte #%00111100
 	.byte #%11011011
 	.byte #%11011011
@@ -2740,6 +2781,18 @@ CarIdToSpriteAddressH
 	.byte #>CarSprite1
 	.byte #>CarSprite2
 	.byte #>CarSprite3
+
+EnemyCarIdToSpriteAddressL
+	.byte #<CarSprite0NoPadding
+	.byte #<CarSprite1NoPadding
+	.byte #<CarSprite2NoPadding
+	.byte #<CarSprite3NoPadding
+
+EnemyCarIdToSpriteAddressH
+	.byte #>CarSprite0NoPadding
+	.byte #>CarSprite1NoPadding
+	.byte #>CarSprite2NoPadding
+	.byte #>CarSprite3NoPadding
 
 CarIdToAccelerateSpeed
 	.byte #128
