@@ -1133,8 +1133,173 @@ PrepareForTraffic
 	
 	LDA Tmp3 ;3
 	STA COLUBK ;3
+    LDA FrameCount0
+    AND #%00000001
+    BNE OpDrawCache
 	JMP DrawCache ;3 Skips the first WSYNC, so the last background line can be draw to the end.
 	;The first loop never drans a car, so it is fine this jump uses 3 cycles of the next line.
+
+;main scanline loop...
+OpScanLoop
+	STA WSYNC ;?? from the end of the scan loop, sync the final line
+
+;Start of next line!			
+OpDrawCache ;63 Is the last line going to the top of the next frame?
+	LDA PF0Cache ;3
+	STA PF0	     ;3
+	
+	LDA GRP0Cache ;3
+	STA GRP0      ;3
+
+	LDA GRP1Cache ;3
+	STA GRP1      ;3
+
+	LDA ENABLCache ;3
+	STA ENABL      ;3
+
+	LDA ENAM0Cache ;3
+	STA ENAM0    ;3
+
+	LDA ENAM1Cache  ;3
+	STA ENAM1 ;3
+
+	LDA PF2Cache ;3
+	STA PF2	     ;3
+
+	LDA #0		 ;2
+    STA PF0	     ;3
+	STA GRP1Cache ;3
+	STA ENABLCache ;3
+	STA ENAM0Cache ;3
+	STA ENAM1Cache; 3
+    STA PF2	     ;3
+
+OpDrawCar0
+	CPY #CAR_START_LINE ;2 ;Saves memory and still fast
+	BCS OpSkipDrawCar;2
+	LDA (CarSpritePointerL),Y ;5 ;Very fast, in the expense of rom space
+	STA GRP0Cache      ;3   ;put it as graphics now
+OpSkipDrawCar
+
+	;BEQ DrawTraffic3
+OpDrawTraffic1; 33
+	TYA; 2
+	CLC; 2 
+	ADC TrafficOffset1 + 1;3
+	AND #TRAFFIC_1_MASK ;2 ;#%11111000
+	BCS OpEorOffsetWithCarry; 2(worse not to jump), 4 if branch
+	EOR TrafficOffset1 + 2 ; 3
+	JMP OpAfterEorOffsetWithCarry ; 3
+OpEorOffsetWithCarry
+	EOR TrafficOffset1 + 3 ; 3
+OpAfterEorOffsetWithCarry ;17
+	TAX ;2
+	LDA AesTable,X ; 4
+	CMP TrafficChance;3
+	BCS OpFinishDrawTraffic1 ; 2
+	LDA #$FF ;2
+	STA ENABLCache ;3
+OpFinishDrawTraffic1
+
+OpDrawTraffic2; 33
+	TYA; 2
+	CLC; 2 
+	ADC TrafficOffset2 + 1;3
+	AND #TRAFFIC_1_MASK ;2
+	BCS OpEorOffsetWithCarry2; 4 max if branch max, 2 otherwise
+	EOR TrafficOffset2 + 2 ; 3
+	JMP OpAfterEorOffsetWithCarry2 ; 3
+OpEorOffsetWithCarry2
+	EOR TrafficOffset2 + 3 ; 3
+OpAfterEorOffsetWithCarry2 ;17
+	TAX ;2
+	LDA AesTable,X ; 4
+	CMP TrafficChance;3
+	BCS OpFinishDrawTraffic2 ; 2
+	LDA #%00000010 ;2
+	STA ENAM0Cache;3
+OpFinishDrawTraffic2	
+
+	;STA WSYNC ;65 / 137
+
+	; LDA Tmp0 ; Flicker this line if drawing car
+	; BEQ FinishDrawTraffic4
+OpDrawTraffic3; 33
+	TYA; 2
+	CLC; 2 
+	ADC TrafficOffset3 + 1;3
+	AND #TRAFFIC_1_MASK ;2
+	BCS OpEorOffsetWithCarry3; 4 max if branch max, 2 otherwise
+	EOR TrafficOffset3 + 2 ; 3
+	JMP AfterEorOffsetWithCarry3 ; 3
+OpEorOffsetWithCarry3
+	EOR TrafficOffset3 + 3 ; 3
+OpAfterEorOffsetWithCarry3 ;17
+	TAX ;2
+	LDA AesTable,X ; 4
+	CMP TrafficChance;3
+	BCS OpFinishDrawTraffic3 ; 2 
+	LDA #%00000010 ;2
+	STA ENAM1Cache
+OpFinishDrawTraffic3	
+	
+; DrawTraffic4; 33
+; 	TYA; 2
+; 	CLC; 2 
+; 	ADC TrafficOffset4 + 1;3
+; 	AND #TRAFFIC_1_MASK ;2
+; 	BCS EorOffsetWithCarry4; 4 max if branch max, 2 otherwise
+; 	EOR TrafficOffset4 + 2 ; 3
+; 	JMP AfterEorOffsetWithCarry4 ; 3
+; EorOffsetWithCarry4
+; 	EOR TrafficOffset4 + 3 ; 3
+; AfterEorOffsetWithCarry4 ;17
+; 	TAX ;2
+; 	LDA AesTable,X ; 4
+; 	CMP TrafficChance;3
+; 	BCS FinishDrawTraffic4 ; 2
+; 	LDA #%00000010 ;2
+; 	STA ENAM1Cache	;3
+; FinishDrawTraffic4
+
+OpDrawOponent ;26
+    STY Tmp0 ;3
+    LDY OpponentLine ;3
+    CPY #(CAR_START_LINE - 7);2
+    BCS OpSkipDrawOpponent ;2
+OpDrawOpponent
+    LDA (EnemyCarSpritePointerL),Y ;5
+    STA GRP1Cache ;3
+    DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
+    LDY Tmp0 ;3
+    JMP OpSkipDrawTraffic0 ; Do not draw border to save cycles
+OpSkipDrawOpponent
+    DEC OpponentLine ;5
+    LDY Tmp0 ;3
+
+OpDrawTraffic0; 21 2pe
+    TYA; 2
+	CLC; 2 
+	ADC TrafficOffset0 + 1 ;3
+    AND #%00001000 ;2
+    BEQ OpHasNoBorderP0 ;3
+OpHasBorderP0
+    LDA #%11110000 ; 2
+    JMP OpStoreBorderP0 ; 3
+OpHasNoBorderP0
+    LDA #0 ; 2
+OpStoreBorderP0
+    STA PF0Cache ; 3
+    STA PF2Cache ; 3
+
+OpSkipDrawTraffic0
+
+OpWhileScanLoop 
+	DEY	;2
+	BMI OpFinishScanLoop ;2 two big Breach, needs JMP
+	JMP OpScanLoop ;3
+OpFinishScanLoop ; 7 209 of 222
+    JMP FinishScanLoop
 
 ;main scanline loop...
 ScanLoop 
