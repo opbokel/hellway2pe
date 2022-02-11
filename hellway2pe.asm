@@ -16,7 +16,7 @@ COLLISION_SPEED_L = $10;
 
 WARN_TIME_ENDING = 10 ; Exclusive
 
-TRAFFIC_LINE_COUNT = 5
+TRAFFIC_LINE_COUNT = 4
 ;16 bit precision
 ;640 max speed!
 CAR_MAX_SPEED_H = $02; L is in a table
@@ -115,20 +115,13 @@ Player0SpeedH = $8F
 
 TrafficOffset0 = $90; Border $91 $92 (24 bit) $93 is cache
 TrafficOffset1 = $94; Traffic 1 $94 $95 (24 bit) $96 is cache
-TrafficOffset2 = $98; Traffic 1 $99 $9A (24 bit) $9B is cache
-TrafficOffset3 = $9C; Traffic 1 $9D $9E (24 bit) $9F is cache
-TrafficOffset4 = $A0; Traffic 1 $A1 $A2 (24 bit) $A3 is cache
+TrafficOffset2 = $98; Traffic 2 $99 $9A (24 bit) $9B is cache
+TrafficOffset3 = $9C; Traffic 3 $9D $9E (24 bit) $9F is cache
+OpTrafficOffset0 = $A0; Border $A1 $A2 (24 bit) $A3 is cache
+OpTrafficOffset1 = $A4; Border $A5 $A6 (24 bit) $A7 is cache
+OpTrafficOffset2 = $A8; Border $A9 $AA (24 bit) $AB is cache
+OpTrafficOffset3 = $AC; Border $AD $AE (24 bit) $AF is cache
 
-CheckpointBcd0 = $A4
-CheckpointBcd1 = $A5
-StartSWCHB = $A6 ; Used for Score, so it cannot be cheated.
-CarSpritePointerL = $A7
-CarSpritePointerH = $A8
-CurrentCarId = $A9
-AccelerateBuffer = $AA ; Change speed on buffer overflow.
-TextSide = $AB
-TextFlickerMode = $AC
-Gear = $AD
 
 ;Temporary variables, multiple uses
 Tmp0 = $B0
@@ -183,6 +176,17 @@ OpponentLine = $D8
 
 EnemyCarSpritePointerL = $D9
 EnemyCarSpritePointerH = $DA
+
+CheckpointBcd0 = $DB
+CheckpointBcd1 = $DC
+StartSWCHB = $DD ; Used for Score, so it cannot be cheated.
+CarSpritePointerL = $DE
+CarSpritePointerH = $DF
+CurrentCarId = $F0
+AccelerateBuffer = $F1 ; Change speed on buffer overflow.
+TextSide = $F2
+TextFlickerMode = $F3
+Gear = $F4
 
 
 ;generic start up stuff, put zero in almost all...
@@ -314,9 +318,9 @@ ConfigureNextCheckpoint
 
 	LDA #0 ; Avoid missile reseting position 
 	SLEEP 5;
-	STA RESBL
-	SLEEP 2;
 	STA RESM0
+	SLEEP 2;
+	STA RESBL
 	SLEEP 2
 	STA RESM1
     STA RESP1
@@ -403,10 +407,6 @@ RandomizeGame
 	LDA AesTable,X
 	EOR FrameCount0
 	STA TrafficOffset3 + 2
-	LDX TrafficOffset4 + 2
-	LDA AesTable,X
-	EOR FrameCount0
-	STA TrafficOffset4 + 2
 	JMP EndRandomizeGame
 
 DeterministicGame
@@ -607,15 +607,15 @@ CalculateOffsetCache
 	ADC #0 ;Increment by one
 	STA TrafficOffset0,X ; cache of the other possible value for the MSB in the frame, make drawing faster.
 
-ConfigureOpponentLine ; Temporary
-    LDA #55 ; Extract to constant
-    STA OpponentLine
-
 PrepareNextUpdateLoop
 	INY
 	INX
 	CPX #TRAFFIC_LINE_COUNT * 4;
 	BNE UpdateOffsets
+
+ConfigureOpponentLine ; Temporary
+    LDA #5 ; Extract to constant
+    STA OpponentLine
 
 BcdScore ; 48
 	LDA TrafficOffset0 + 1 ;3
@@ -1145,9 +1145,7 @@ OpScanLoop
 
 ;Start of next line!			
 OpDrawCache ;63 Is the last line going to the top of the next frame?
-	LDA PF0Cache ;3
-	STA PF0	     ;3
-	
+
 	LDA GRP0Cache ;3
 	STA GRP0      ;3
 
@@ -1163,16 +1161,20 @@ OpDrawCache ;63 Is the last line going to the top of the next frame?
 	LDA ENAM1Cache  ;3
 	STA ENAM1 ;3
 
-	LDA PF2Cache ;3
-	STA PF2	     ;3
+	LDA PF0Cache ;3
+	STA PF0	     ;3
 
 	LDA #0		 ;2
-    STA PF0	     ;3
+    ;STA PF0	     ;3
 	STA GRP1Cache ;3
+    STA ENAM0Cache ;3
 	STA ENABLCache ;3
-	STA ENAM0Cache ;3
 	STA ENAM1Cache; 3
-    STA PF2	     ;3
+    STA PF0        ;3
+    ;STA PF2	     ;3
+
+	LDA PF2Cache ;3
+	STA PF2	     ;3
 
 OpDrawCar0
 	CPY #CAR_START_LINE ;2 ;Saves memory and still fast
@@ -1198,8 +1200,12 @@ OpAfterEorOffsetWithCarry ;17
 	CMP TrafficChance;3
 	BCS OpFinishDrawTraffic1 ; 2
 	LDA #$FF ;2
-	STA ENABLCache ;3
+	STA ENAM0Cache;3
 OpFinishDrawTraffic1
+
+OpErasePF2
+    LDA #0
+    STA PF2
 
 OpDrawTraffic2; 33
 	TYA; 2
@@ -1217,7 +1223,7 @@ OpAfterEorOffsetWithCarry2 ;17
 	CMP TrafficChance;3
 	BCS OpFinishDrawTraffic2 ; 2
 	LDA #%00000010 ;2
-	STA ENAM0Cache;3
+	STA ENABLCache;3
 OpFinishDrawTraffic2	
 
 	;STA WSYNC ;65 / 137
@@ -1231,7 +1237,7 @@ OpDrawTraffic3; 33
 	AND #TRAFFIC_1_MASK ;2
 	BCS OpEorOffsetWithCarry3; 4 max if branch max, 2 otherwise
 	EOR TrafficOffset3 + 2 ; 3
-	JMP AfterEorOffsetWithCarry3 ; 3
+	JMP OpAfterEorOffsetWithCarry3 ; 3
 OpEorOffsetWithCarry3
 	EOR TrafficOffset3 + 3 ; 3
 OpAfterEorOffsetWithCarry3 ;17
@@ -1242,25 +1248,6 @@ OpAfterEorOffsetWithCarry3 ;17
 	LDA #%00000010 ;2
 	STA ENAM1Cache
 OpFinishDrawTraffic3	
-	
-; DrawTraffic4; 33
-; 	TYA; 2
-; 	CLC; 2 
-; 	ADC TrafficOffset4 + 1;3
-; 	AND #TRAFFIC_1_MASK ;2
-; 	BCS EorOffsetWithCarry4; 4 max if branch max, 2 otherwise
-; 	EOR TrafficOffset4 + 2 ; 3
-; 	JMP AfterEorOffsetWithCarry4 ; 3
-; EorOffsetWithCarry4
-; 	EOR TrafficOffset4 + 3 ; 3
-; AfterEorOffsetWithCarry4 ;17
-; 	TAX ;2
-; 	LDA AesTable,X ; 4
-; 	CMP TrafficChance;3
-; 	BCS FinishDrawTraffic4 ; 2
-; 	LDA #%00000010 ;2
-; 	STA ENAM1Cache	;3
-; FinishDrawTraffic4
 
 OpDrawOponent ;26
     STY Tmp0 ;3
@@ -1280,7 +1267,7 @@ OpSkipDrawOpponent
 OpDrawTraffic0; 21 2pe
     TYA; 2
 	CLC; 2 
-	ADC TrafficOffset0 + 1 ;3
+	ADC OpTrafficOffset0 + 1 ;3
     AND #%00001000 ;2
     BEQ OpHasNoBorderP0 ;3
 OpHasBorderP0
@@ -1316,11 +1303,11 @@ DrawCache ;63 Is the last line going to the top of the next frame?
 	LDA GRP1Cache ;3
 	STA GRP1      ;3
 
-	LDA ENABLCache ;3
-	STA ENABL      ;3
-
 	LDA ENAM0Cache ;3
 	STA ENAM0    ;3
+
+	LDA ENABLCache ;3
+	STA ENABL      ;3
 
 	LDA ENAM1Cache  ;3
 	STA ENAM1 ;3
@@ -1360,7 +1347,7 @@ AfterEorOffsetWithCarry ;17
 	CMP TrafficChance;3
 	BCS FinishDrawTraffic1 ; 2
 	LDA #$FF ;2
-	STA ENABLCache ;3
+	STA ENAM0Cache ;3
 FinishDrawTraffic1
 
 DrawTraffic2; 33
@@ -1379,7 +1366,7 @@ AfterEorOffsetWithCarry2 ;17
 	CMP TrafficChance;3
 	BCS FinishDrawTraffic2 ; 2
 	LDA #%00000010 ;2
-	STA ENAM0Cache;3
+	STA ENABLCache;3
 FinishDrawTraffic2	
 
 	;STA WSYNC ;65 / 137
@@ -1405,24 +1392,6 @@ AfterEorOffsetWithCarry3 ;17
 	STA ENAM1Cache
 FinishDrawTraffic3	
 	
-; DrawTraffic4; 33
-; 	TYA; 2
-; 	CLC; 2 
-; 	ADC TrafficOffset4 + 1;3
-; 	AND #TRAFFIC_1_MASK ;2
-; 	BCS EorOffsetWithCarry4; 4 max if branch max, 2 otherwise
-; 	EOR TrafficOffset4 + 2 ; 3
-; 	JMP AfterEorOffsetWithCarry4 ; 3
-; EorOffsetWithCarry4
-; 	EOR TrafficOffset4 + 3 ; 3
-; AfterEorOffsetWithCarry4 ;17
-; 	TAX ;2
-; 	LDA AesTable,X ; 4
-; 	CMP TrafficChance;3
-; 	BCS FinishDrawTraffic4 ; 2
-; 	LDA #%00000010 ;2
-; 	STA ENAM1Cache	;3
-; FinishDrawTraffic4
 
 DrawOponent ;26
     STY Tmp0 ;3
@@ -1746,8 +1715,6 @@ DefaultOffsets
 	LDA #$60
 	STA TrafficOffset3 + 2	;Initial Y Position
 	LDA #$80
-	STA TrafficOffset4 + 2	;Initial Y Position
-	LDA #$A0
 	RTS
 
 PrintStaticText ; Preload X with the offset referent to StaticText
