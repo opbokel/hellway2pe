@@ -240,11 +240,13 @@ SettingTrafficOffsets; Time sensitive with player H position
 	STA WSYNC ;We will set player position
 	JSR DefaultOffsets
 
+    STA RESP0 ; Not Correct yet
+
 	LDA TrafficSpeeds + 4 * 2 ; Same as the line he is in.
 	STA Player0SpeedL
 	
 	;SLEEP 11;18
-	STA RESP0
+
 		
 	LDX #0
 	LDA SWCHB ; Reading the switches and mapping to difficulty id
@@ -344,35 +346,26 @@ MainLoop
 	STA WSYNC
     STA HMOVE  ;2 Apply Movement, must be done after a WSYNC
 CalculateTextSide ; Here because it is a waste of cycles not to put anything
-	LDA #%00000001
-	BIT TextFlickerMode
-	BEQ TextSideFrameZero
-	AND FrameCount1
-	JMP StoreTextSize
+	LDA #%00000001 ;3
+	BIT TextFlickerMode ;2
+	BEQ TextSideFrameZero ;2
+	AND FrameCount1 ;2
+	JMP StoreTextSize ;3
 TextSideFrameZero
-	AND FrameCount0
+	AND FrameCount0 ;2
 StoreTextSize	
-	STA TextSide
-	STA WSYNC	
-    ;STA HMOVE			
-    STA HMCLR
-    
-; SetHMove
-;     LDA FrameCount0 ;3
-; 	AND #%00000001 ;2
-;     BEQ MoveAllRight
-; MoveAllLeft
-;     LDA #$70
-;     JMP StoreMoveAllValues
-; MoveAllRight
-;     LDA #$90
+	STA TextSide ;3
 
-; StoreMoveAllValues
-;     STA HMBL
-; 	STA HMM0
-; 	STA HMM1
-	; STA HMP0
-	; STA HMP1
+PrepareMaxHMove
+    SLEEP 18 ; Ensures "Should not be modified during the 24 computer cycles immediately following an HMOVE"
+    LDA #$80
+    STA HMBL
+	STA HMM0
+	STA HMM1
+    STA HMP0
+    STA HMP1
+	STA WSYNC
+    STA HMOVE ; 1/10			
 
 ConfigVBlankTimer
 	LDA GameMode
@@ -385,6 +378,7 @@ SetVblankTimerQrCode
 
 SetVblankTimer
 	STA WSYNC ;3
+    STA HMOVE; 2/10 Check if VSYNC can suffer this delay
 	STA TIM64T ;3	
 	LDA #0 ;2
 	STA VSYNC ;3	
@@ -399,20 +393,33 @@ RandomizeGame
 	LDA AesTable,X
 	EOR FrameCount0
 	STA TrafficOffset1 + 2
+    STA OpTrafficOffset1 + 2
 	LDX TrafficOffset2 + 2
 	LDA AesTable,X
 	EOR FrameCount0
 	STA TrafficOffset2 + 2
+    STA OpTrafficOffset2 + 2
 	LDX TrafficOffset3 + 2
 	LDA AesTable,X
 	EOR FrameCount0
 	STA TrafficOffset3 + 2
+    STA OpTrafficOffset3 + 2
 	JMP EndRandomizeGame
 
 DeterministicGame
 	JSR DefaultOffsets
 
 EndRandomizeGame
+
+; Move this in the code and save cycles, for some reason spliting is breaking...
+    LDX #8
+BurnAllHMove    
+    STA WSYNC ;3
+    STA HMOVE; 3/10 
+    DEX
+    BNE BurnAllHMove
+    STA WSYNC ;3
+    STA HMCLR; 
 
 CountFrame	
 	INC FrameCount0 ; 5
@@ -1187,10 +1194,10 @@ OpSkipDrawCar
 OpDrawTraffic1; 33
 	TYA; 2
 	CLC; 2 
-	ADC TrafficOffset1 + 1;3
+	ADC OpTrafficOffset1 + 1;3
 	AND #TRAFFIC_1_MASK ;2 ;#%11111000
 	BCS OpEorOffsetWithCarry; 2(worse not to jump), 4 if branch
-	EOR TrafficOffset1 + 2 ; 3
+	EOR OpTrafficOffset1 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry ; 3
 OpEorOffsetWithCarry
 	EOR TrafficOffset1 + 3 ; 3
@@ -1210,10 +1217,10 @@ OpErasePF2
 OpDrawTraffic2; 33
 	TYA; 2
 	CLC; 2 
-	ADC TrafficOffset2 + 1;3
+	ADC OpTrafficOffset2 + 1;3
 	AND #TRAFFIC_1_MASK ;2
 	BCS OpEorOffsetWithCarry2; 4 max if branch max, 2 otherwise
-	EOR TrafficOffset2 + 2 ; 3
+	EOR OpTrafficOffset2 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry2 ; 3
 OpEorOffsetWithCarry2
 	EOR TrafficOffset2 + 3 ; 3
@@ -1233,10 +1240,10 @@ OpFinishDrawTraffic2
 OpDrawTraffic3; 33
 	TYA; 2
 	CLC; 2 
-	ADC TrafficOffset3 + 1;3
+	ADC OpTrafficOffset3 + 1;3
 	AND #TRAFFIC_1_MASK ;2
 	BCS OpEorOffsetWithCarry3; 4 max if branch max, 2 otherwise
-	EOR TrafficOffset3 + 2 ; 3
+	EOR OpTrafficOffset3 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry3 ; 3
 OpEorOffsetWithCarry3
 	EOR TrafficOffset3 + 3 ; 3
@@ -1271,7 +1278,7 @@ OpDrawTraffic0; 21 2pe
     AND #%00001000 ;2
     BEQ OpHasNoBorderP0 ;3
 OpHasBorderP0
-    LDA #%11110000 ; 2
+    LDA #%01110000 ; 2
     JMP OpStoreBorderP0 ; 3
 OpHasNoBorderP0
     LDA #0 ; 2
@@ -1415,7 +1422,7 @@ DrawTraffic0; 21 2pe
     AND #%00001000 ;2
     BEQ HasNoBorderP0 ;3
 HasBorderP0
-    LDA #%11110000 ; 2
+    LDA #%01110000 ; 2
     JMP StoreBorderP0 ; 3
 HasNoBorderP0
     LDA #0 ; 2
@@ -1710,10 +1717,13 @@ EndNextDifficulty
 DefaultOffsets
 	LDA #$20
 	STA TrafficOffset1 + 2
+    STA OpTrafficOffset1 + 2
 	LDA #$40
 	STA TrafficOffset2 + 2	;Initial Y Position
+    STA OpTrafficOffset2 + 2
 	LDA #$60
 	STA TrafficOffset3 + 2	;Initial Y Position
+    STA OpTrafficOffset3 + 2
 	LDA #$80
 	RTS
 
