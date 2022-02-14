@@ -1551,6 +1551,9 @@ EndRightSound
 StartGame
 	LDA INPT4 ;3
 	BMI SkipGameStart ;2 ;not pressed the fire button in negative in bit 7
+    LDA FrameCount0
+    AND #%00000001
+    BNE SkipGameStart ; Starts only on even frames, so we avoid players to have the screen swaped.
 	LDA GameStatus ;3
 	ORA SwitchDebounceCounter ; Do not start during debounce
 	BNE SkipGameStart
