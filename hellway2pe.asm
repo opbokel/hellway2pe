@@ -301,7 +301,7 @@ ConfigureNextCheckpoint
 	STA NextCheckpoint
 
 	LDA #0 ; Avoid missile reseting position 
-	SLEEP 5;
+	SLEEP 4;
 	STA RESM0
 	SLEEP 2;
 	STA RESBL
@@ -309,7 +309,7 @@ ConfigureNextCheckpoint
 	STA RESM1
     STA RESP1
 
-	LDA #$F0
+	LDA #$E0
 	STA HMBL
 	STA HMM0
 	STA HMM1
