@@ -129,10 +129,6 @@ Tmp1 = $B1
 Tmp2 = $B2
 Tmp3 = $B3
 
-ScoreBcd0 = $B4
-ScoreBcd1 = $B5
-ScoreBcd2 = $B6
-ScoreBcd3 = $B7
 
 CollisionCounter=$B8
 Player0X = $B9
@@ -153,15 +149,6 @@ GameMode = $C5 ; Bit 0 controls fixed levels, bit 1 random positions,
 				;Bit 2 speed delta, Bit 3 random traffic 
 
 
-BorderType = $CA
-
-HitCountBcd0 = $CB
-HitCountBcd1 = $CC
-
-GlideTimeBcd0 = $CD
-GlideTimeBcd1 = $CE
-
-OneSecondConter = $CF
 
 ScoreD0 = $D0
 ScoreD1 = $D1
@@ -177,8 +164,6 @@ OpponentLine = $D8
 EnemyCarSpritePointerL = $D9
 EnemyCarSpritePointerH = $DA
 
-CheckpointBcd0 = $DB
-CheckpointBcd1 = $DC
 StartSWCHB = $DD ; Used for Score, so it cannot be cheated.
 CarSpritePointerL = $DE
 CarSpritePointerH = $DF
@@ -294,9 +279,6 @@ SetGameNotRunning
 	LDA #0
 	STA GameStatus
 
-ConfigureOneSecondTimer
-	LDA #ONE_SECOND_FRAMES
-	STA OneSecondConter
 
 ConfigureTimer
     LDA #INITIAL_COUNTDOWN_TIME ;2
@@ -624,29 +606,6 @@ ConfigureOpponentLine ; Temporary
     LDA #5 ; Extract to constant
     STA OpponentLine
 
-BcdScore ; 48
-	LDA TrafficOffset0 + 1 ;3
-	EOR Tmp3 ;3
-	AND #%00010000 ; 2 Change in D4 means change on screen first digit, inc BCD
-	BEQ FinishBcdScore ;2
-
-ContinueBcdScore
-	SED ;2
-	CLC ;2
-	LDA ScoreBcd0 ;3
-	ADC #1 ;2
-	STA ScoreBcd0 ;3
-	LDA ScoreBcd1 ;3
-	ADC #0 ;2
-	STA ScoreBcd1 ;3
-	LDA ScoreBcd2 ;3
-	ADC #0 ;2
-	STA ScoreBcd2 ;3
-	LDA ScoreBcd3 ;3
-	ADC #0 ;2
-	STA ScoreBcd3 ;3
-	CLD ;2
-FinishBcdScore
 
 ;Until store the movemnt, LDX contains the value to be stored.
 TestCollision;
@@ -667,20 +626,6 @@ TestCollision;
 	BEQ NoCollision
 	LDA #COLLISION_FRAMES	;must be a hit! Change rand color bg
 	STA CollisionCounter	;and store as colision.
-CountBcdColision
-	LDA ScoreFontColor ; Do not count colisions on game over.
-	CMP #SCORE_FONT_COLOR_OVER
-	BEQ SkipSetColisionSpeedL
-	SED ;2
-	CLC ;2
-	LDA HitCountBcd0 ;3
-	ADC #1 ;3
-	STA HitCountBcd0 ;3
-	LDA HitCountBcd1 ;3
-	ADC #0 ;2
-	STA HitCountBcd1 ;3
-	CLD ;2
-EndCountBcdColision
 	LDA Player0SpeedH
 	BNE SetColisionSpeedL ; Never skips setting colision speed if high byte > 0
 	LDA #COLLISION_SPEED_L
@@ -805,17 +750,6 @@ IsCheckpoint
 	STA ScoreFontColor
 	LDA #SCORE_FONT_HOLD_CHANGE
 	STA ScoreFontColorHoldChange
-AddCheckpointBcd
-	SED ;2
-	CLC ;2
-	LDA CheckpointBcd0 ;3
-	ADC #1 ;3
-	STA CheckpointBcd0 ;3
-	LDA CheckpointBcd1 ;3
-	ADC #0 ;2
-	STA CheckpointBcd1 ;3
-	CLD ;2
-EndCheckpointBcd
 	LDA CountdownTimer
 	CLC
 	ADC CheckpointTime
@@ -837,46 +771,6 @@ IsTimeOver
 	STA ScoreFontColor
 SkipIsTimeOver
 
-ExactlyEverySecond ; 88 Here to use this nice extra cycles of the 5 scanlines
-	LDA GameStatus ;3
-	BEQ EndExactlyEverySecond ; 2 Count only while game running
-	LDA ScoreFontColor ;3
-	CMP #SCORE_FONT_COLOR_OVER ;2
-	BEQ EndExactlyEverySecond ;2
-	DEC OneSecondConter ;5
-	BNE EndExactlyEverySecond ;2
-
-	SED ;2 BCD Operations after this point
-CountGlideTimeBcd
-	LDA ScoreFontColor ;3
-	CMP #SCORE_FONT_COLOR_BAD ;2
-	BNE EndCountGlideTimeBcd ;2
-	CLC ;2
-	LDA GlideTimeBcd0 ;3
-	ADC #1 ;3
-	STA GlideTimeBcd0 ;3
-	LDA GlideTimeBcd1 ;3
-	ADC #0 ;2
-	STA GlideTimeBcd1 ;3
-EndCountGlideTimeBcd
-IncreaseTotalTimerBcd
-	CLC ;2
-	LDA TimeBcd0 ;3
-	ADC #1 ;2
-	STA TimeBcd0 ;3
-	LDA TimeBcd1 ;3
-	ADC #0 ;2
-	STA TimeBcd1 ;3
-	LDA TimeBcd2 ;3
-	ADC #0 ;2
-	STA TimeBcd2 ;3
-
-ResetOneSecondCounter
-	CLD ;2
-	LDA #ONE_SECOND_FRAMES ;3
-	STA OneSecondConter ;3
-
-EndExactlyEverySecond
 
 PrintEasterEggCondition
 	LDA FrameCount1
@@ -1963,28 +1857,6 @@ DrawGameOverScreenLeft
 	STA WSYNC
 	JSR ClearPF
 
-DrawBcdScoreLeft
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR
-	STA COLUP0
-	STA WSYNC
-	LDA #<CS + #FONT_OFFSET
-	STA ScoreD0
-
-	LDA #<Colon + #FONT_OFFSET
-	STA ScoreD1
-
-	LDA ScoreBcd3
-	AND #%00001111
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD2 ;3
-
-	LDY #ScoreBcd2
-	JSR PrintLastLeftDecimalDigits
-	
-	JSR DrawGameOverScoreLine
-
 DrawTimerLeft
 	JSR Sleep8Lines
 	LDA #SCORE_FONT_COLOR_EASTER_EGG
@@ -2084,48 +1956,6 @@ DrawGameVersionLeft
 DrawGameOverScreenRight
 	STA WSYNC
 	JSR ClearPF
-	
-DrawBcdScoreRight	
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR
-	STA COLUP1
-	STA WSYNC
-	LDY #ScoreBcd0
-	JSR PrintRightDecimalDigits
-
-	JSR DrawGameOverScoreLine
-
-DrawTimerRight
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_EASTER_EGG
-	STA COLUP1
-	LDY #TimeBcd0
-	JSR PrintRightDecimalDigits
-
-	JSR DrawGameOverScoreLine
-DrawGlideTimeRight
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_BAD
-	STA COLUP1
-	LDY #GlideTimeBcd0
-	JSR PrintRightDecimalDigits
-	JSR DrawGameOverScoreLine
-
-DrawHitCountRight
-	JSR Sleep8Lines
-	LDA #TRAFFIC_COLOR_INTENSE
-	STA COLUP1
-	LDY #HitCountBcd0
-	JSR PrintRightDecimalDigits
-	JSR DrawGameOverScoreLine
-
-DrawCheckpointCountRight
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_GOOD
-	STA COLUP1
-	LDY #CheckpointBcd0
-	JSR PrintRightDecimalDigits
-	JSR DrawGameOverScoreLine
 
 DrawVersionRight
 	JSR Sleep8Lines
