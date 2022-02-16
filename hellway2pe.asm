@@ -65,8 +65,8 @@ SCORE_FONT_COLOR_BAD = $44
 SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
 SCORE_FONT_COLOR_OVER = $0C
 
-PLAYER_0_X_START = $35;
-PLAYER_0_MAX_X = $36 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
+PLAYER_0_X_START = 33;
+PLAYER_0_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
 
 INITIAL_COUNTDOWN_TIME = 90; Seconds +-
 CHECKPOINT_INTERVAL = $10 ; Acts uppon TrafficOffset0 + 3
@@ -225,14 +225,10 @@ SettingTrafficOffsets; Time sensitive with player H position
 	STA WSYNC ;We will set player position
 	JSR DefaultOffsets
 
-    STA RESP0 ; Not Correct yet
-
 	LDA TrafficSpeeds + 4 * 2 ; Same as the line he is in.
 	STA Player0SpeedL
 	
 	;SLEEP 11;18
-
-		
 	LDX #0
 	LDA SWCHB ; Reading the switches and mapping to difficulty id
 	STA StartSWCHB ; For game over
@@ -307,7 +303,7 @@ ConfigureNextCheckpoint
 	STA RESBL
 	SLEEP 2
 	STA RESM1
-    STA RESP1
+    SLEEP 3
 
 	LDA #$E0
 	STA HMBL
@@ -317,6 +313,10 @@ ConfigureNextCheckpoint
 	STA HMOVE
 	STA WSYNC ; Time is irrelevant before sync to TV, ROM space is not!
 	STA HMCLR
+    SLEEP 30
+    STA RESP0
+    ;SLEEP 10 ; Temporarily move player 1 away.
+    STA RESP1
 
 WaitResetToEnd
 	LDA INTIM	
@@ -603,7 +603,7 @@ PrepareNextUpdateLoop
 	BNE UpdateOffsets
 
 ConfigureOpponentLine ; Temporary
-    LDA #5 ; Extract to constant
+    LDA #20 ; Extract to constant
     STA OpponentLine
 
 
@@ -611,7 +611,6 @@ ConfigureOpponentLine ; Temporary
 TestCollision;
 ; see if player0 colides with the rest
 	LDA CXM0P
-	ORA CXM1P
 	ORA CXM1P
 	ORA CXP0FB
 	ORA CXPPMM
@@ -1067,7 +1066,7 @@ OpDrawCache ;63 Is the last line going to the top of the next frame?
 
 	LDA #0		 ;2
     ;STA PF0	     ;3
-	STA GRP1Cache ;3
+	STA GRP0Cache ;3
     STA ENAM0Cache ;3
 	STA ENABLCache ;3
 	STA ENAM1Cache; 3
@@ -1081,7 +1080,7 @@ OpDrawCar0
 	CPY #CAR_START_LINE ;2 ;Saves memory and still fast
 	BCS OpSkipDrawCar;2
 	LDA (CarSpritePointerL),Y ;5 ;Very fast, in the expense of rom space
-	STA GRP0Cache      ;3   ;put it as graphics now
+	STA GRP1Cache      ;3   ;put it as graphics now
 OpSkipDrawCar
 
 	;BEQ DrawTraffic3
@@ -1157,7 +1156,7 @@ OpDrawOponent ;26
     BCS OpSkipDrawOpponent ;2
 OpDrawOpponent
     LDA (EnemyCarSpritePointerL),Y ;5
-    STA GRP1Cache ;3
+    STA GRP0Cache ;3
     DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
     LDY Tmp0 ;3
     JMP OpSkipDrawTraffic0 ; Do not draw border to save cycles
