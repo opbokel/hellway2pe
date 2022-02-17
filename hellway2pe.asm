@@ -315,7 +315,7 @@ ConfigureNextCheckpoint
 	STA HMCLR
     SLEEP 30
     STA RESP0
-    ;SLEEP 10 ; Temporarily move player 1 away.
+    SLEEP 5 ; Temporarily move player 1 away.
     STA RESP1
 
 WaitResetToEnd
