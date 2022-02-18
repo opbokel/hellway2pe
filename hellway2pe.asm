@@ -953,6 +953,7 @@ ScoreBackgroundColor
 	LDX #0
 	LDA SWCHB
 	AND #%00001000 ; If Black and white, this will make A = 0
+    EOR #%00001000 ; Make black the default, can be optimized.
 	BEQ BlackAndWhiteScoreBg
 	LDA #SCORE_BACKGROUND_COLOR
 	LDX #BACKGROUND_COLOR
@@ -1070,6 +1071,7 @@ OpDrawCache ;63 Is the last line going to the top of the next frame?
     STA ENAM0Cache ;3
 	STA ENABLCache ;3
 	STA ENAM1Cache; 3
+    ;STA GRP1Cache ;3
     STA PF0        ;3
     ;STA PF2	     ;3
 
@@ -1152,14 +1154,14 @@ OpFinishDrawTraffic3
 OpDrawOponent ;26
     STY Tmp0 ;3
     LDY OpponentLine ;3
-    CPY #(CAR_START_LINE - 7);2
+    CPY #(CAR_START_LINE - 8);2
     BCS OpSkipDrawOpponent ;2
 OpDrawOpponent
     LDA (EnemyCarSpritePointerL),Y ;5
     STA GRP0Cache ;3
     DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
     LDY Tmp0 ;3
-    JMP OpSkipDrawTraffic0 ; Do not draw border to save cycles
+    JMP OpHasNoBorderP0 ; Do not draw border to save cycles
 OpSkipDrawOpponent
     DEC OpponentLine ;5
     LDY Tmp0 ;3
@@ -1221,6 +1223,7 @@ DrawCache ;63 Is the last line going to the top of the next frame?
 	STA ENABLCache ;3
 	STA ENAM0Cache ;3
 	STA ENAM1Cache; 3
+    ;STA GRP0Cache
     STA PF2	     ;3
 
 DrawCar0
@@ -1296,14 +1299,14 @@ FinishDrawTraffic3
 DrawOponent ;26
     STY Tmp0 ;3
     LDY OpponentLine ;3
-    CPY #(CAR_START_LINE - 7);2
+    CPY #(CAR_START_LINE - 8);2
     BCS SkipDrawOpponent ;2
 DrawOpponent
     LDA (EnemyCarSpritePointerL),Y ;5
     STA GRP1Cache ;3
     DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
     LDY Tmp0 ;3
-    JMP SkipDrawTraffic0 ; Do not draw border to save cycles
+    JMP HasNoBorderP0 ; Do not draw border to save cycles
 SkipDrawOpponent
     DEC OpponentLine ;5
     LDY Tmp0 ;3
@@ -2119,6 +2122,7 @@ DrawQrCode
 	JSR ClearAll ; To be 100 sure!
 	LDA SWCHB
 	AND #%00001000 ; If Black and white, this will make A = 0
+    EOR #%00001000 ; Make black the default, can be optimized.
 	BEQ StoreReversedQrCode
 	STX COLUBK
 	STY COLUPF
