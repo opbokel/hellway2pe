@@ -807,6 +807,7 @@ IsTimeOver
 	STA ScoreFontColor
 SkipIsTimeOver
 
+    JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
 PrintEasterEggCondition
 	LDA FrameCount1
@@ -2042,13 +2043,29 @@ Sleep32Lines
 	RTS
 
 ConfigureCarSprites
-	LDY CurrentCarId
+    LDA FrameCount0
+    AND #%00000001
+    BNE LoadForRightScreenSprites
+LoadForLeftScreenSprites
+    LDA CurrentCarId
+    STA Tmp0
+    LDA CurrentOpponentCarId
+    STA Tmp1
+    JMP LoadCarSpritesFromIds
+LoadForRightScreenSprites
+    LDA CurrentCarId
+    STA Tmp1
+    LDA CurrentOpponentCarId
+    STA Tmp0
+    
+LoadCarSpritesFromIds ; The pointers are reversed every frame, opponent car has no padding
+	LDY Tmp0
 	LDA CarIdToSpriteAddressL,Y
 	STA CarSpritePointerL
 	LDA CarIdToSpriteAddressH,Y
 	STA CarSpritePointerH
 ConfigureOpponentCarSprite
-	LDY CurrentOpponentCarId
+	LDY Tmp1
 	LDA EnemyCarIdToSpriteAddressL,Y
 	STA EnemyCarSpritePointerL
 	LDA EnemyCarIdToSpriteAddressH,Y
