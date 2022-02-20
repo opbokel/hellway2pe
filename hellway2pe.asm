@@ -172,6 +172,7 @@ AccelerateBuffer = $F1 ; Change speed on buffer overflow.
 TextSide = $F2
 TextFlickerMode = $F3
 Gear = $F4
+CurrentOpponentCarId = $F5
 
 
 ;generic start up stuff, put zero in almost all...
@@ -180,10 +181,11 @@ BeforeStart ;All variables that are kept on game reset or select
 	STY SwitchDebounceCounter
 	STY CurrentDifficulty
 	STY GameStatus
+    STY CurrentCarId
+    STY CurrentOpponentCarId
 	LDY #16
 	STY GameMode
 	LDY #CURRENT_CAR_MASK ; Also the max id.
-	STY CurrentCarId
 
 Start
 	LDA #2
@@ -206,6 +208,8 @@ CleanMem
 	CPX #GameMode
 	BEQ SkipClean
 	CPX #CurrentCarId
+	BEQ SkipClean
+    CPX #CurrentOpponentCarId
 	BEQ SkipClean
 	CPX #CurrentDifficulty
 	BEQ SkipClean
@@ -247,38 +251,18 @@ CallConfigureDifficulty
 	BNE StoreCurrentDifficulty; Do not change car
 	LDA GameStatus
 	BNE StoreCurrentDifficulty ; Do not change car for a game running reset
-NextCar
-	LDY CurrentCarId
-	INY
-	TYA
-	AND #CURRENT_CAR_MASK ; Cycles 4 values...
-	STA CurrentCarId
 StoreCurrentDifficulty
 	STX CurrentDifficulty
 	JSR ConfigureDifficulty
-
-ConfigureCarSprite
-	LDY CurrentCarId
-	LDA CarIdToSpriteAddressL,Y
-	STA CarSpritePointerL
-	LDA CarIdToSpriteAddressH,Y
-	STA CarSpritePointerH
-
-ConfigureEnemyCarSprite
-	LDY CurrentCarId
-	LDA EnemyCarIdToSpriteAddressL,Y
-	STA EnemyCarSpritePointerL
-	LDA EnemyCarIdToSpriteAddressH,Y
-	STA EnemyCarSpritePointerH
 
 SetGameNotRunning
 	LDA #0
 	STA GameStatus
 
-
 ConfigureTimer
     LDA #INITIAL_COUNTDOWN_TIME ;2
 	STA CountdownTimer ;3
+
 
 HPositioning ; Avoid sleep doing needed stuff
 	STA WSYNC
@@ -393,6 +377,7 @@ DeterministicGame
 
 EndRandomizeGame
 
+
 ; Move this in the code and save cycles, for some reason spliting is breaking...
     LDX #8
 BurnAllHMove    
@@ -419,6 +404,58 @@ CallDrawQrCode
 TestIsGameRunning
 	LDA GameStatus ;3
 	BNE ContinueWithGameLogic ;3 Cannot branch more than 128 bytes, so we have to use JMP
+SelectCarWithDpad ; Only do it when game is stoped
+    LDA SWCHA
+    AND #%00010000
+    BNE ReadDpadDown
+    LDA #0
+    STA CurrentCarId
+ReadDpadDown
+    LDA SWCHA
+    AND #%00100000
+    BNE ReadDpadLeft
+    LDA #1
+    STA CurrentCarId
+ReadDpadLeft
+    LDA SWCHA
+    AND #%01000000
+    BNE ReadDpadRight
+    LDA #2
+    STA CurrentCarId
+ReadDpadRight
+    LDA SWCHA
+    AND #%10000000
+    BNE SelectOpponentCarWithDpad
+    LDA #3
+    STA CurrentCarId
+SelectOpponentCarWithDpad ; Only do it when game is stoped
+    LDA SWCHA
+    AND #%00000001
+    BNE ReadOpponentDpadDown
+    LDA #0
+    STA CurrentOpponentCarId
+ReadOpponentDpadDown
+    LDA SWCHA
+    AND #%00000010
+    BNE ReadOpponentDpadLeft
+    LDA #1
+    STA CurrentOpponentCarId
+ReadOpponentDpadLeft
+    LDA SWCHA
+    AND #%00000100
+    BNE ReadOpponentDpadRight
+    LDA #2
+    STA CurrentOpponentCarId
+ReadOpponentDpadRight
+    LDA SWCHA
+    AND #%00001000
+    BNE CallConfigureCarSprites
+    LDA #3
+    STA CurrentOpponentCarId
+
+CallConfigureCarSprites
+    JSR ConfigureCarSprites
+SkipUpdateLogicJump
 	JMP SkipUpdateLogic
 ContinueWithGameLogic
 
@@ -1166,6 +1203,7 @@ OpSkipDrawOpponent
     DEC OpponentLine ;5
     LDY Tmp0 ;3
 
+
 OpDrawTraffic0; 21 2pe
     TYA; 2
 	CLC; 2 
@@ -1446,10 +1484,11 @@ EndRightSound
 ;Read Fire Button before, will make it start the game for now.
 StartGame
 	LDA INPT4 ;3
+    AND INPT5 ;3 player 
 	BMI SkipGameStart ;2 ;not pressed the fire button in negative in bit 7
     LDA FrameCount0
     AND #%00000001
-    BNE SkipGameStart ; Starts only on even frames, so we avoid players to have the screen swaped.
+    BNE SkipGameStart ; Starts only on even frames, so we avoid players to have the screen swaped (hack).
 	LDA GameStatus ;3
 	ORA SwitchDebounceCounter ; Do not start during debounce
 	BNE SkipGameStart
@@ -2001,6 +2040,20 @@ Sleep32Lines
 	JSR Sleep8Lines
 	JSR Sleep8Lines
 	RTS
+
+ConfigureCarSprites
+	LDY CurrentCarId
+	LDA CarIdToSpriteAddressL,Y
+	STA CarSpritePointerL
+	LDA CarIdToSpriteAddressH,Y
+	STA CarSpritePointerH
+ConfigureOpponentCarSprite
+	LDY CurrentOpponentCarId
+	LDA EnemyCarIdToSpriteAddressL,Y
+	STA EnemyCarSpritePointerL
+	LDA EnemyCarIdToSpriteAddressH,Y
+	STA EnemyCarSpritePointerH
+    RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
 	org $FC00
