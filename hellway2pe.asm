@@ -114,6 +114,7 @@ FrameCount1 = $8D;
 Player0SpeedL = $8E
 Player0SpeedH = $8F
 
+; The cache could shared, and just written in the correct frame (used for drawing), saving 4 bytes.
 TrafficOffset0 = $90; Border $91 $92 (24 bit) $93 is cache
 TrafficOffset1 = $94; Traffic 1 $94 $95 (24 bit) $96 is cache
 TrafficOffset2 = $98; Traffic 2 $99 $9A (24 bit) $9B is cache
@@ -123,32 +124,36 @@ OpTrafficOffset1 = $A4; Border $A5 $A6 (24 bit) $A7 is cache
 OpTrafficOffset2 = $A8; Border $A9 $AA (24 bit) $AB is cache
 OpTrafficOffset3 = $AC; Border $AD $AE (24 bit) $AF is cache
 
-
 ;Temporary variables, multiple uses
 Tmp0 = $B0
 Tmp1 = $B1
 Tmp2 = $B2
 Tmp3 = $B3
 
-
 CollisionCounter=$B4
-Player0X = $B5
-Player1X = $B6
-CountdownTimer = $B7
-Traffic0Msb = $B8
-SwitchDebounceCounter = $B9
+OpCollisionCounter=$B5
+Player0X = $B6
+Player1X = $B7
+CountdownTimer = $B8
+OpCountdownTimer = $B9
+Traffic0Msb = $BA
+OpTraffic0Msb = $BB
+SwitchDebounceCounter = $BC
+GameStatus = $BD ; Not zero is running! No need to make it a bit flag for now.
+TrafficChance = $BE
+OpTrafficChance = $BF
 
-
-
-GameStatus = $C0 ; Not zero is running! No need to make it a bit flag for now.
-TrafficChance = $C1
-CheckpointTime = $C2
-TrafficColor = $C3
+CheckpointTime = $C0
+OpCheckpointTime = $C1
+TrafficColor = $C2
+OpTrafficColor = $C3
 CurrentDifficulty = $C4
-GameMode = $C5 ; Bit 0 controls fixed levels, bit 1 random positions, 
+OpCurrentDifficulty = $C5
+GameMode = $C6 ; Bit 0 controls fixed levels, bit 1 random positions, 
 				;Bit 2 speed delta, Bit 3 random traffic 
 
-
+CurrentCarId = $C7
+OpCurrentCarId = $C8
 
 ScoreD0 = $D0
 ScoreD1 = $D1
@@ -167,12 +172,12 @@ EnemyCarSpritePointerH = $DA
 StartSWCHB = $DD ; Used for Score, so it cannot be cheated.
 CarSpritePointerL = $DE
 CarSpritePointerH = $DF
-CurrentCarId = $F0
+
 AccelerateBuffer = $F1 ; Change speed on buffer overflow.
 TextSide = $F2
 TextFlickerMode = $F3
 Gear = $F4
-CurrentOpponentCarId = $F5
+
 
 
 ;generic start up stuff, put zero in almost all...
@@ -182,7 +187,7 @@ BeforeStart ;All variables that are kept on game reset or select
 	STY CurrentDifficulty
 	STY GameStatus
     STY CurrentCarId
-    STY CurrentOpponentCarId
+    STY OpCurrentCarId
 	LDY #16
 	STY GameMode
 	LDY #CURRENT_CAR_MASK ; Also the max id.
@@ -209,7 +214,7 @@ CleanMem
 	BEQ SkipClean
 	CPX #CurrentCarId
 	BEQ SkipClean
-    CPX #CurrentOpponentCarId
+    CPX #OpCurrentCarId
 	BEQ SkipClean
 	CPX #CurrentDifficulty
 	BEQ SkipClean
@@ -263,15 +268,16 @@ ConfigureTimer
     LDA #INITIAL_COUNTDOWN_TIME ;2
 	STA CountdownTimer ;3
 
+ConfigurePlayer1XPosition
+    LDA #PLAYER_1_X_START ;2
+	STA Player1X ;3
 
 HPositioning ; Avoid sleep doing needed stuff
 	STA WSYNC
 
-ConfigurePlayerXPosition
+ConfigurePlayer0XPosition
     LDA #PLAYER_0_X_START ;2
 	STA Player0X ;3
-    LDA #PLAYER_1_X_START ;2
-	STA Player1X ;3
 
 ConfigureMissileSize
     LDA #%00110000;2 Missile Size
@@ -301,7 +307,7 @@ ConfigureNextCheckpoint
 	STA HMCLR
     SLEEP 30
     STA RESP0
-    ;SLEEP 5 ; Temporarily move player 1 away.
+    SLEEP 5 ; Temporarily move player 1 away.
     STA RESP1
 
 WaitResetToEnd
@@ -406,55 +412,14 @@ CallDrawQrCode
 TestIsGameRunning
 	LDA GameStatus ;3
 	BNE ContinueWithGameLogic ;3 Cannot branch more than 128 bytes, so we have to use JMP
-SelectCarWithDpad ; Only do it when game is stoped
-    LDA SWCHA
-    AND #%00010000
-    BNE ReadDpadDown
-    LDA #0
-    STA CurrentCarId
-ReadDpadDown
-    LDA SWCHA
-    AND #%00100000
-    BNE ReadDpadLeft
-    LDA #1
-    STA CurrentCarId
-ReadDpadLeft
-    LDA SWCHA
-    AND #%01000000
-    BNE ReadDpadRight
-    LDA #2
-    STA CurrentCarId
-ReadDpadRight
-    LDA SWCHA
-    AND #%10000000
-    BNE SelectOpponentCarWithDpad
-    LDA #3
-    STA CurrentCarId
-SelectOpponentCarWithDpad ; Only do it when game is stoped
-    LDA SWCHA
-    AND #%00000001
-    BNE ReadOpponentDpadDown
-    LDA #0
-    STA CurrentOpponentCarId
-ReadOpponentDpadDown
-    LDA SWCHA
-    AND #%00000010
-    BNE ReadOpponentDpadLeft
-    LDA #1
-    STA CurrentOpponentCarId
-ReadOpponentDpadLeft
-    LDA SWCHA
-    AND #%00000100
-    BNE ReadOpponentDpadRight
-    LDA #2
-    STA CurrentOpponentCarId
-ReadOpponentDpadRight
-    LDA SWCHA
-    AND #%00001000
-    BNE CallConfigureCarSprites
-    LDA #3
-    STA CurrentOpponentCarId
-
+SelectCarWithDpadCall ; Only do it when game is stoped
+    LDX #0 ; Player 0
+    LDA #%10000000 ;SWCHA Mask, it ends the call in the correct value for Player 1 call
+    STA Tmp0
+    JSR SelectCarWithDpad
+    INX ; Player 1
+    JSR SelectCarWithDpad
+    
 CallConfigureCarSprites
     JSR ConfigureCarSprites
 SkipUpdateLogicJump
@@ -642,7 +607,7 @@ PrepareNextUpdateLoop
 	BNE UpdateOffsets
 
 ConfigureOpponentLine ; Temporary
-    LDA #60 ; Extract to constant
+    LDA #20 ; Extract to constant
     STA OpponentLine
 
 
@@ -2038,13 +2003,13 @@ ConfigureCarSprites
 LoadForLeftScreenSprites
     LDA CurrentCarId
     STA Tmp0
-    LDA CurrentOpponentCarId
+    LDA OpCurrentCarId
     STA Tmp1
     JMP LoadCarSpritesFromIds
 LoadForRightScreenSprites
     LDA CurrentCarId
     STA Tmp1
-    LDA CurrentOpponentCarId
+    LDA OpCurrentCarId
     STA Tmp0
     
 LoadCarSpritesFromIds ; The pointers are reversed every frame, opponent car has no padding
@@ -2059,6 +2024,22 @@ ConfigureOpponentCarSprite
 	STA EnemyCarSpritePointerL
 	LDA EnemyCarIdToSpriteAddressH,Y
 	STA EnemyCarSpritePointerH
+    RTS
+
+;Tmp0 Current SWCHA mask, will be right shifted 4 times
+;X player 0 or 1
+SelectCarWithDpad 
+    LDY #3
+SelectCarWithDpadLoop
+    LDA SWCHA
+    AND Tmp0
+    BNE ContinueSelectCarWithDpadLoop
+    TYA
+    STA CurrentCarId,X
+ContinueSelectCarWithDpadLoop
+    LSR Tmp0
+    DEY
+    BPL SelectCarWithDpadLoop
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
