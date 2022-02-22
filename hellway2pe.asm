@@ -66,6 +66,7 @@ SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game sta
 SCORE_FONT_COLOR_OVER = $0C
 
 PLAYER_0_X_START = 33;
+PLAYER_1_X_START = 39;
 PLAYER_0_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
 
 INITIAL_COUNTDOWN_TIME = 90; Seconds +-
@@ -130,15 +131,14 @@ Tmp2 = $B2
 Tmp3 = $B3
 
 
-CollisionCounter=$B8
-Player0X = $B9
-CountdownTimer = $BA
-Traffic0Msb = $BB
-SwitchDebounceCounter = $BC
+CollisionCounter=$B4
+Player0X = $B5
+Player1X = $B6
+CountdownTimer = $B7
+Traffic0Msb = $B8
+SwitchDebounceCounter = $B9
 
-TimeBcd0 = $BD
-TimeBcd1 = $BE
-TimeBcd2 = $BF
+
 
 GameStatus = $C0 ; Not zero is running! No need to make it a bit flag for now.
 TrafficChance = $C1
@@ -270,6 +270,8 @@ HPositioning ; Avoid sleep doing needed stuff
 ConfigurePlayerXPosition
     LDA #PLAYER_0_X_START ;2
 	STA Player0X ;3
+    LDA #PLAYER_1_X_START ;2
+	STA Player1X ;3
 
 ConfigureMissileSize
     LDA #%00110000;2 Missile Size
@@ -299,7 +301,7 @@ ConfigureNextCheckpoint
 	STA HMCLR
     SLEEP 30
     STA RESP0
-    SLEEP 5 ; Temporarily move player 1 away.
+    ;SLEEP 5 ; Temporarily move player 1 away.
     STA RESP1
 
 WaitResetToEnd
@@ -640,7 +642,7 @@ PrepareNextUpdateLoop
 	BNE UpdateOffsets
 
 ConfigureOpponentLine ; Temporary
-    LDA #20 ; Extract to constant
+    LDA #60 ; Extract to constant
     STA OpponentLine
 
 
@@ -738,7 +740,9 @@ BeginReadRight
 SkipMoveRight
 StoreHMove
 	STX HMP0	;set the move for player 0, not the missile like last time...
-	STA CXCLR	;reset the collision detection for next frame.
+	
+ClearCollision
+    STA CXCLR	;reset the collision detection for next frame.
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -1898,21 +1902,6 @@ DrawGameOverScoreLine
 DrawGameOverScreenLeft
 	STA WSYNC
 	JSR ClearPF
-
-DrawTimerLeft
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_EASTER_EGG
-	STA COLUP0
-	LDA #<CT + #FONT_OFFSET
-	STA ScoreD0
-	LDA #<Colon + #FONT_OFFSET
-	STA ScoreD1
-	LDA #<C0 + #FONT_OFFSET
-	STA ScoreD2
-	LDY #TimeBcd2
-	STA WSYNC
-	JSR PrintLastLeftDecimalDigits
-	JSR DrawGameOverScoreLine
 
 DrawGlideTimerLeft
 	JSR Sleep8Lines
