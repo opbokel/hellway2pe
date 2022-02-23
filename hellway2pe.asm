@@ -66,7 +66,7 @@ SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game sta
 SCORE_FONT_COLOR_OVER = $0C
 
 PLAYER_0_X_START = 33;
-PLAYER_1_X_START = 39;
+PLAYER_1_X_START = 42;
 PLAYER_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
 
 INITIAL_COUNTDOWN_TIME = 90; Seconds +-
@@ -317,7 +317,7 @@ ConfigureNextCheckpoint
 	STA HMCLR
     SLEEP 30
     STA RESP0
-    SLEEP 5 ; Temporarily move player 1 away.
+    ;SLEEP 5 ; Temporarily move player 1 away.
     STA RESP1
 
 WaitResetToEnd
@@ -624,8 +624,37 @@ CallTestColisionAndMove
     LDX #0 ; Player 0
     LDA #%01000000 ; Left player 0
     STA Tmp0
-    LDA #%10000000 ; Left player 0
+    LDA #%10000000 ; right player 0
     STA Tmp1
+    ; Colision with traffic, each player check different flags,
+    LDA FrameCount0
+    AND #%00000001
+    BEQ SkipColisionPlayer0 ; Test colision after draw frame
+    LDA CXM1P
+    LSR 
+	ORA CXM0P
+	ORA CXP0FB
+	; ORA CXPPMM ; Collision between players will have its own rules
+SkipColisionPlayer0 ; Should not colide on opponent side.
+	AND #%01000000 ; Accounting for random noise in the bus	
+    STA Tmp2	
+    JSR TestCollisionAndMove
+    
+    INX ; player 1
+    LDA #%00000100 ; Left player 1
+    STA Tmp0
+    LDA #%00001000 ; right player 1
+    STA Tmp1
+    LDA FrameCount0
+    AND #%00000001
+    BNE SkipColisionPlayer1 ; Test colision after draw frame
+    LDA CXM0P
+    LSR 
+	ORA CXM1P
+	ORA CXP1FB
+SkipColisionPlayer1
+    AND #%01000000 ; Accounting for random noise in the bus	
+    STA Tmp2	
     JSR TestCollisionAndMove
 
 SkipUpdateLogic ; Continue here if not paused
@@ -1967,14 +1996,12 @@ ContinueSelectCarWithDpadLoop
 ; Use X for the player
 ; Tmp0 SWCHA Turn left Mask
 ; Tmp1 SWCHA Turn right Mask
+; Tmp2 Traffic colision result
+; Tmp3 Opponent Colision result (Not implemented)
 TestCollisionAndMove
 ; Until store the movemnt, Y contains the value to be stored.
 ; see if player0 colides with the rest
-	LDA CXM0P
-	ORA CXM1P
-	ORA CXP0FB
-	; ORA CXPPMM ; Collision between players will have its own rules
-	AND #%11000000 ; Accounting for random noise in the bus		
+	LDA Tmp2
 	BEQ NoCollision	;skip if not hitting...
 	LDA CollisionCounter,X ; If colision is alredy happening, ignore!
 	BNE NoCollision	
@@ -2031,14 +2058,9 @@ MakeDragsterTurnSlow ; Only car diff that does not use a table.
 	AND #DRAGSTER_TURN_MASK
 	BEQ StoreHMove ; Ignore movement on some frames
 
-; for left and right, we're gonna 
-; set the horizontal speed, and then do
-; a single HMOVE.  We'll use X to hold the
-; horizontal speed, then store it in the 
-; appropriate register
 PrepareReadXAxis
 	LDY #0
-	LDA Player0X
+	LDA Player0X,X
 BeginReadLeft
 	BEQ SkipMoveLeft ; We do not move after maximum
 	LDA Tmp0	;Left mask set before call (player 0 or 1)
@@ -2049,7 +2071,7 @@ BeginReadLeft
 	JMP StoreHMove ; Cannot move left and right...
 SkipMoveLeft
 BeginReadRight
-    LDA Player0X
+    LDA Player0X,X
 	CMP #PLAYER_MAX_X
 	BEQ SkipMoveRight ; At max already
 	LDA Tmp1	;Right mask set before call (player 0 or 1)
