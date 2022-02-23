@@ -1037,13 +1037,15 @@ PrepareForTraffic
 
 	JSR ClearPF ; 32 Useless, but get to wait 32 cycles
 
-	SLEEP 14
-	
-	LDA Tmp3 ;3
-	STA COLUBK ;3
-    LDA FrameCount0
-    AND #%00000001
-    BNE OpDrawCache
+    LDX Tmp3 ; Background color.
+
+	SLEEP 9 ; Odd sleep destroys flags
+
+    LDA FrameCount0 ;Brach flag
+    AND #%00000001 
+
+	STX COLUBK ;3
+    BNE OpDrawCache ;2
 	JMP DrawCache ;3 Skips the first WSYNC, so the last background line can be draw to the end.
 	;The first loop never drans a car, so it is fine this jump uses 3 cycles of the next line.
 
