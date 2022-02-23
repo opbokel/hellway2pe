@@ -155,30 +155,36 @@ GameMode = $C6 ; Bit 0 controls fixed levels, bit 1 random positions,
 CurrentCarId = $C7
 OpCurrentCarId = $C8
 
+ScoreFontColor=$C9
+OpScoreFontColor=$CA
+ScoreFontColorHoldChange=$CB
+OpScoreFontColorHoldChange=$CC
+NextCheckpoint=$CD
+OpNextCheckpoint=$CE
+OpponentLine = $CF 
+
 ScoreD0 = $D0
 ScoreD1 = $D1
 ScoreD2 = $D2
 ScoreD3 = $D3
 ScoreD4 = $D4
-ScoreFontColor=$D5
-ScoreFontColorHoldChange=$D6
-NextCheckpoint=$D7
 
-OpponentLine = $D8
+Gear = $D5
+OpGear = $D6
+
+CarSpritePointerL = $D7
+CarSpritePointerH = $D8
 
 EnemyCarSpritePointerL = $D9
 EnemyCarSpritePointerH = $DA
 
-StartSWCHB = $DD ; Used for Score, so it cannot be cheated.
-CarSpritePointerL = $DE
-CarSpritePointerH = $DF
+StartSWCHB = $DB ; Used for Score, so it cannot be cheated.
 
-AccelerateBuffer = $F1 ; Change speed on buffer overflow.
-TextSide = $F2
-TextFlickerMode = $F3
-Gear = $F4
+AccelerateBuffer = $DC ; Change speed on buffer overflow.
+OpAccelerateBuffer = $DD ; Change speed on buffer overflow.
 
-
+TextSide = $DE ; Smarter to use a screen side variable for all
+TextFlickerMode = $DF ; First variable to condense into one or remove if not enough ram
 
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
