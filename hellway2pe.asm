@@ -67,7 +67,7 @@ SCORE_FONT_COLOR_OVER = $0C
 
 PLAYER_0_X_START = 33;
 PLAYER_1_X_START = 39;
-PLAYER_0_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
+PLAYER_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
 
 INITIAL_COUNTDOWN_TIME = 90; Seconds +-
 CHECKPOINT_INTERVAL = $10 ; Acts uppon TrafficOffset0 + 3
@@ -111,8 +111,7 @@ ENAM1Cache = $87
 FrameCount0 = $8C;
 FrameCount1 = $8D;
 
-Player0SpeedL = $8E
-Player0SpeedH = $8F
+; 8E and 8F are free!!!!
 
 ; The cache could shared, and just written in the correct frame (used for drawing), saving 4 bytes.
 TrafficOffset0 = $90; Border $91 $92 (24 bit) $93 is cache
@@ -185,6 +184,11 @@ OpAccelerateBuffer = $DD ; Change speed on buffer overflow.
 
 TextSide = $DE ; Smarter to use a screen side variable for all
 TextFlickerMode = $DF ; First variable to condense into one or remove if not enough ram
+
+Player0SpeedL = $F0
+Player1SpeedL = $F1
+Player0SpeedH = $F2
+Player1SpeedH = $F3
 
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
@@ -616,104 +620,13 @@ ConfigureOpponentLine ; Temporary
     LDA #20 ; Extract to constant
     STA OpponentLine
 
-
-;Until store the movemnt, LDX contains the value to be stored.
-TestCollision;
-; see if player0 colides with the rest
-	LDA CXM0P
-	ORA CXM1P
-	ORA CXP0FB
-	ORA CXPPMM
-	AND #%11000000 ; Accounting for random noise in the bus		
-	BEQ NoCollision	;skip if not hitting...
-	LDA CollisionCounter ; If colision is alredy happening, ignore!
-	BNE NoCollision	
-	LDA ScoreFontColor ; Ignore colisions during checkpoint (Green Score)
-	CMP #SCORE_FONT_COLOR_GOOD
-	BEQ NoCollision
-	CMP #SCORE_FONT_COLOR_START
-	BEQ NoCollision
-	LDA #COLLISION_FRAMES	;must be a hit! Change rand color bg
-	STA CollisionCounter	;and store as colision.
-	LDA Player0SpeedH
-	BNE SetColisionSpeedL ; Never skips setting colision speed if high byte > 0
-	LDA #COLLISION_SPEED_L
-	CMP Player0SpeedL
-	BCS SkipSetColisionSpeedL
-SetColisionSpeedL
-	LDA #COLLISION_SPEED_L ; Needs optimization!
-	STA Player0SpeedL
-SkipSetColisionSpeedL	
-	LDA #0
-	STA Player0SpeedH
-	LDX #$40	;Move car left 4 color clocks, to center the stretch (+4)	
-	JMP StoreHMove ; We keep position consistent
-NoCollision
-
-DecrementCollision
-	LDY CollisionCounter
-	BEQ FinishDecrementCollision
-	LDA #%00110101; Make player bigger to show colision
-	STA NUSIZ0
-	DEY
-	STY CollisionCounter ; We save some cycles in reset size.
-FinishDecrementCollision
-
-ResetPlayerSize
-	BNE FinishResetPlayerSize
-	LDA #%00110000
-	STA NUSIZ0;
-FinishResetPlayerSize
-
-    ;STA HMCLR ; Do not double move car.
-
-ResetPlayerPosition ;For 1 frame, he will not colide, but will have the origina size
-	CPY #1 ; Last frame before reset
-	BNE SkipResetPlayerPosition
-	LDX #$C0	;Move car left 4 color clocks, to center the stretch (-4)
-	JMP StoreHMove
-SkipResetPlayerPosition
-
-MakeDragsterTurnSlow ; Only car diff that does not use a table.
-	LDA CurrentCarId
-	CMP #CAR_ID_DRAGSTER
-	BNE PrepareReadXAxis
-	LDX #0
-	LDA FrameCount0
-	AND #DRAGSTER_TURN_MASK
-	BEQ StoreHMove ; Ignore movement on some frames
-
-; for left and right, we're gonna 
-; set the horizontal speed, and then do
-; a single HMOVE.  We'll use X to hold the
-; horizontal speed, then store it in the 
-; appropriate register
-PrepareReadXAxis
-	LDX #0
-	LDY Player0X
-BeginReadLeft
-	BEQ SkipMoveLeft ; We do not move after maximum
-	LDA #%01000000	;Left
-	BIT SWCHA 
-	BNE SkipMoveLeft
-	LDX #$10	;a 1 in the left nibble means go left
-	DEC Player0X
-	JMP StoreHMove ; Cannot move left and right...
-SkipMoveLeft
-BeginReadRight
-	CPY #PLAYER_0_MAX_X
-	BEQ SkipMoveRight ; At max already
-	LDA #%10000000	;Right
-	BIT SWCHA 
-	BNE SkipMoveRight
-	LDX #$F0	;a -1 in the left nibble means go right...
-	INC Player0X
-SkipMoveRight
-StoreHMove
-	STX HMP0	;set the move for player 0, not the missile like last time...
-	
-ClearCollision
-    STA CXCLR	;reset the collision detection for next frame.
+CallTestColisionAndMove
+    LDX #0 ; Player 0
+    LDA #%01000000 ; Left player 0
+    STA Tmp0
+    LDA #%10000000 ; Left player 0
+    STA Tmp1
+    JSR TestCollisionAndMove
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -2048,6 +1961,108 @@ ContinueSelectCarWithDpadLoop
     LSR Tmp0
     DEY
     BPL SelectCarWithDpadLoop
+    RTS
+
+; Movement and colision are binded because the car must be moved after duplicate size.
+; Use X for the player
+; Tmp0 SWCHA Turn left Mask
+; Tmp1 SWCHA Turn right Mask
+TestCollisionAndMove
+; Until store the movemnt, Y contains the value to be stored.
+; see if player0 colides with the rest
+	LDA CXM0P
+	ORA CXM1P
+	ORA CXP0FB
+	; ORA CXPPMM ; Collision between players will have its own rules
+	AND #%11000000 ; Accounting for random noise in the bus		
+	BEQ NoCollision	;skip if not hitting...
+	LDA CollisionCounter,X ; If colision is alredy happening, ignore!
+	BNE NoCollision	
+	LDA ScoreFontColor,X ; Ignore colisions during checkpoint (Green Score)
+	CMP #SCORE_FONT_COLOR_GOOD
+	BEQ NoCollision
+	CMP #SCORE_FONT_COLOR_START
+	BEQ NoCollision
+	LDA #COLLISION_FRAMES	;must be a hit! Change rand color bg
+	STA CollisionCounter,X	;and store as colision.
+	LDA Player0SpeedH,X
+	BNE SetColisionSpeedL ; Never skips setting colision speed if high byte > 0
+	LDA #COLLISION_SPEED_L
+	CMP Player0SpeedL,X
+	BCS SkipSetColisionSpeedL
+SetColisionSpeedL
+	LDA #COLLISION_SPEED_L ; Needs optimization!
+	STA Player0SpeedL,X
+SkipSetColisionSpeedL	
+	LDA #0
+	STA Player0SpeedH,X
+	LDY #$40	;Move car left 4 color clocks, to center the stretch (+4)	
+	JMP StoreHMove ; We keep position consistent
+NoCollision
+
+DecrementCollision
+	LDA CollisionCounter,X
+	BEQ FinishDecrementCollision
+	LDA #%00110101; Make player bigger to show colision
+	STA NUSIZ0,X ; NUSIZ1 is on the next position
+	DEC CollisionCounter,X
+FinishDecrementCollision
+
+ResetPlayerSize
+	BNE FinishResetPlayerSize
+	LDA #%00110000
+	STA NUSIZ0,X;
+FinishResetPlayerSize
+
+ResetPlayerPosition ;For 1 frame, he will not colide, but will have the origina size
+	LDA CollisionCounter,X
+    CMP #1 ; Last frame before reset
+	BNE SkipResetPlayerPosition
+	LDY #$C0	;Move car left 4 color clocks, to center the stretch (-4)
+	JMP StoreHMove
+SkipResetPlayerPosition
+
+MakeDragsterTurnSlow ; Only car diff that does not use a table.
+	LDA CurrentCarId,X
+	CMP #CAR_ID_DRAGSTER
+	BNE PrepareReadXAxis
+	LDY #0
+	LDA FrameCount0
+	AND #DRAGSTER_TURN_MASK
+	BEQ StoreHMove ; Ignore movement on some frames
+
+; for left and right, we're gonna 
+; set the horizontal speed, and then do
+; a single HMOVE.  We'll use X to hold the
+; horizontal speed, then store it in the 
+; appropriate register
+PrepareReadXAxis
+	LDY #0
+	LDA Player0X
+BeginReadLeft
+	BEQ SkipMoveLeft ; We do not move after maximum
+	LDA Tmp0	;Left mask set before call (player 0 or 1)
+	BIT SWCHA
+	BNE SkipMoveLeft
+	LDY #$10	;a 1 in the left nibble means go left
+	DEC Player0X,X
+	JMP StoreHMove ; Cannot move left and right...
+SkipMoveLeft
+BeginReadRight
+    LDA Player0X
+	CMP #PLAYER_MAX_X
+	BEQ SkipMoveRight ; At max already
+	LDA Tmp1	;Right mask set before call (player 0 or 1)
+	BIT SWCHA 
+	BNE SkipMoveRight
+	LDY #$F0	;a -1 in the left nibble means go right...
+	INC Player0X,X
+SkipMoveRight
+StoreHMove
+	STY HMP0,X	;set the move for player 0
+
+ClearCollision
+    STA CXCLR	;reset the collision detection for next frame.
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
