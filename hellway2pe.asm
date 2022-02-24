@@ -111,11 +111,12 @@ ENAM1Cache = $87
 FrameCount0 = $8C;
 FrameCount1 = $8D;
 
-; 8E and 8F are free!!!!
+CollisionCounter=$8E
+OpCollisionCounter=$8F
 
 ; The cache could shared, and just written in the correct frame (used for drawing), saving 4 bytes.
 TrafficOffset0 = $90; Border $91 $92 (24 bit) $93 is cache
-TrafficOffset1 = $94; Traffic 1 $94 $95 (24 bit) $96 is cache
+TrafficOffset1 = $94; Traffic 1 $95 $96 (24 bit) $97 is cache
 TrafficOffset2 = $98; Traffic 2 $99 $9A (24 bit) $9B is cache
 TrafficOffset3 = $9C; Traffic 3 $9D $9E (24 bit) $9F is cache
 OpTrafficOffset0 = $A0; Border $A1 $A2 (24 bit) $A3 is cache
@@ -128,9 +129,9 @@ Tmp0 = $B0
 Tmp1 = $B1
 Tmp2 = $B2
 Tmp3 = $B3
+Tmp4 = $B4
+Tmp5 = $B5
 
-CollisionCounter=$B4
-OpCollisionCounter=$B5
 Player0X = $B6
 Player1X = $B7
 CountdownTimer = $B8
@@ -246,6 +247,7 @@ SettingTrafficOffsets; Time sensitive with player H position
 
 	LDA TrafficSpeeds + 4 * 2 ; Same as the line he is in.
 	STA Player0SpeedL
+    STA Player1SpeedL
 	
 	;SLEEP 11;18
 	LDX #0
@@ -563,58 +565,24 @@ ResetToMaxSpeed ; Speed is more, or is already max
 	STA Player0SpeedL
 SkipAccelerate
 
-InitUpdateOffsets
-	LDX #0 ; Memory Offset 24 bit
-	LDY #0 ; Line Speeds 16 bits
-	LDA TrafficOffset0 + 1;
-	STA Tmp3 ; Used for bcd score, to detect change on D4
-	LDA GameMode
-	AND #%00000100 ; GameModes with high delta
-	BEQ UpdateOffsets
-	LDY #(TrafficSpeedsHighDelta - TrafficSpeeds)
-	
-UpdateOffsets; Car sped - traffic speed = how much to change offet (signed)
-	SEC
-	LDA Player0SpeedL
-	SBC TrafficSpeeds,Y
-	STA Tmp0
-	INY
-	LDA Player0SpeedH
-	SBC TrafficSpeeds,Y
-	STA Tmp1
-	LDA #0; Hard to figure out, makes the 2 complement result work correctly, since we use this 16 bit signed result in a 24 bit operation
-	SBC #0
-	STA Tmp2
+CallUpdateOffsets
+    LDX #0 ; Player 0
+    LDA #TRAFFIC_LINE_COUNT * 4 ; Max X
+    STA Tmp3 ;Tmp 0,1,2 used by SBR
+    LDA Player0SpeedL
+    STA Tmp4
+    LDA Player0SpeedH
+    STA Tmp5
+    JSR UpdateOffsets
 
-AddsTheResult
-	CLC
-	LDA Tmp0
-	ADC TrafficOffset0,X
-	STA TrafficOffset0,X
-	INX
-	LDA Tmp1
-	ADC TrafficOffset0,X
-	STA TrafficOffset0,X
-	INX
-	LDA Tmp2 ; Carry
-	ADC TrafficOffset0,X
-	STA TrafficOffset0,X
-	BCC CalculateOffsetCache
-	CPX #2 ;MSB offset 0
-	BNE CalculateOffsetCache
-	INC Traffic0Msb
-
-CalculateOffsetCache
-	INX
-	SEC
-	ADC #0 ;Increment by one
-	STA TrafficOffset0,X ; cache of the other possible value for the MSB in the frame, make drawing faster.
-
-PrepareNextUpdateLoop
-	INY
-	INX
-	CPX #TRAFFIC_LINE_COUNT * 4;
-	BNE UpdateOffsets
+    ;LDX Exits the call with correct value.
+    LDA #TRAFFIC_LINE_COUNT * 4 * 2 ; Max X
+    STA Tmp3 
+    LDA Player1SpeedL
+    STA Tmp4
+    LDA Player1SpeedH
+    STA Tmp5
+    JSR UpdateOffsets
 
 ConfigureOpponentLine ; Temporary
     LDA #20 ; Extract to constant
@@ -1052,7 +1020,7 @@ OpDrawTraffic1; 33
 	EOR OpTrafficOffset1 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry ; 3
 OpEorOffsetWithCarry
-	EOR TrafficOffset1 + 3 ; 3
+	EOR OpTrafficOffset1 + 3 ; 3
 OpAfterEorOffsetWithCarry ;17
 	TAX ;2
 	LDA AesTable,X ; 4
@@ -1075,7 +1043,7 @@ OpDrawTraffic2; 33
 	EOR OpTrafficOffset2 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry2 ; 3
 OpEorOffsetWithCarry2
-	EOR TrafficOffset2 + 3 ; 3
+	EOR OpTrafficOffset2 + 3 ; 3
 OpAfterEorOffsetWithCarry2 ;17
 	TAX ;2
 	LDA AesTable,X ; 4
@@ -1098,7 +1066,7 @@ OpDrawTraffic3; 33
 	EOR OpTrafficOffset3 + 2 ; 3
 	JMP OpAfterEorOffsetWithCarry3 ; 3
 OpEorOffsetWithCarry3
-	EOR TrafficOffset3 + 3 ; 3
+	EOR OpTrafficOffset3 + 3 ; 3
 OpAfterEorOffsetWithCarry3 ;17
 	TAX ;2
 	LDA AesTable,X ; 4
@@ -2001,7 +1969,7 @@ ContinueSelectCarWithDpadLoop
 TestCollisionAndMove
 ; Until store the movemnt, Y contains the value to be stored.
 ; see if player0 colides with the rest
-	LDA Tmp2
+	LDA #0; Just to test consistense Tmp2
 	BEQ NoCollision	;skip if not hitting...
 	LDA CollisionCounter,X ; If colision is alredy happening, ignore!
 	BNE NoCollision	
@@ -2085,6 +2053,67 @@ StoreHMove
 
 ClearCollision
     STA CXCLR	;reset the collision detection for next frame.
+    RTS
+
+; X Traffic offset 4 bits each lane, 4 lanes per player
+; Tmp3 Max X offset
+; Tmp4 Max Player Speed L
+; Tmp5 Max Player Speed H
+UpdateOffsets
+	LDY #0 ; Line Speeds 16 bits
+	LDA GameMode
+	AND #%00000100 ; GameModes with high delta
+	BEQ UpdateOffsetsLoop
+	LDY #(TrafficSpeedsHighDelta - TrafficSpeeds)
+	
+UpdateOffsetsLoop; Car sped - traffic speed = how much to change offet (signed)
+	SEC
+	LDA Tmp4 ;Player_SpeedL
+	SBC TrafficSpeeds,Y
+	STA Tmp0
+	INY
+	LDA Tmp5 ;Player_SpeedH
+	SBC TrafficSpeeds,Y 
+	STA Tmp1
+	LDA #0; Hard to figure out, makes the 2 complement result work correctly, since we use this 16 bit signed result in a 24 bit operation
+	SBC #0
+	STA Tmp2
+
+AddsTheResult
+	CLC
+	LDA Tmp0
+	ADC TrafficOffset0,X
+	STA TrafficOffset0,X
+	INX
+	LDA Tmp1
+	ADC TrafficOffset0,X
+	STA TrafficOffset0,X
+	INX
+	LDA Tmp2 ; Carry
+	ADC TrafficOffset0,X
+	STA TrafficOffset0,X
+	BCC CalculateOffsetCache
+CalculatePlayer0Msb
+	CPX #2 ;Only the border (also score) has MSB, player 0
+	BNE CalculatePlayer1Msb
+	INC Traffic0Msb
+    JMP CalculateOffsetCache
+CalculatePlayer1Msb
+    CPX #(TRAFFIC_LINE_COUNT * 4) + 2 ;MSB for player 1
+	BNE CalculateOffsetCache
+    INC OpTraffic0Msb
+
+CalculateOffsetCache ; This memory space can be shared and just used on the player drawing frame, saving 4 bytes.
+	INX
+	SEC
+	ADC #0 ;Increment by one
+	STA TrafficOffset0,X ; cache of the other possible value for the MSB in the frame, make drawing faster.
+
+PrepareNextUpdateLoop
+	INY
+	INX
+	CPX Tmp3 ; Max X offset
+	BNE UpdateOffsetsLoop
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
