@@ -458,112 +458,8 @@ ChangeTextFlickerMode
 	STA SwitchDebounceCounter
 EndChangeTextFlickerMode
 
-BreakOnTimeOver ; Uses LDX as the breaking speed
-	LDX #0
-	LDA CountdownTimer
-	BNE Break
-	LDY CurrentCarId
-	LDA FrameCount0
-	AND CarIdToTimeoverBreakInterval,Y
-	BNE Break 
-	LDX #TIMEOVER_BREAK_SPEED
-	
-Break
-	LDA #%00100000	;Down in controller
-	BIT SWCHA 
-	BNE BreakNonZero
-	LDA INPT4 ;3
-	BPL BreakWhileAccelerating
-	LDY Gear
-	LDX GearToBreakSpeedTable,Y ; Different break speeds depending on speed.
-	JMP BreakNonZero
-BreakWhileAccelerating ; Allow better control while breaking.
-	LDX (#BREAK_SPEED / 2)
-
-BreakNonZero
-	CPX #0
-	BEQ SkipBreak
-	STX Tmp0
-
-DecreaseSpeed
-	SEC
-	LDA Player0SpeedL
-	SBC Tmp0
-	STA Player0SpeedL
-	LDA Player0SpeedH
-	SBC #0
-	STA Player0SpeedH
-
-CheckMinSpeed
-	BMI ResetMinSpeed; Overflow d7 is set
-	CMP #CAR_MIN_SPEED_H
-	BEQ CompareLBreakSpeed; is the same as minimun, compare other byte.
-	BCS SkipAccelerateIfBreaking; Greater than min, we are ok! 
-
-CompareLBreakSpeed	
-	LDA Player0SpeedL
-	CMP #CAR_MIN_SPEED_L	
-	BCC ResetMinSpeed ; Less than memory
-	JMP SkipAccelerateIfBreaking ; We are greather than min speed in the low byte.
-
-ResetMinSpeed
-	LDA #CAR_MIN_SPEED_H
-	STA Player0SpeedH
-	LDA #CAR_MIN_SPEED_L
-	STA Player0SpeedL
-
-SkipAccelerateIfBreaking
-	JMP SkipAccelerate
-SkipBreak
-
-Acelerates
-	LDA CountdownTimer
-	BEQ SkipAccelerate; cannot accelerate if timer is zero
-
-ContinueAccelerateTest
-	LDA INPT4 ;3
-	BPL IncreaseCarSpeed ; Test button and then up, both accelerate.
-	LDA #%00010000	;UP in controller
-	BIT SWCHA 
-	BNE SkipAccelerate
-
-IncreaseCarSpeed
-	LDX #2
-	LDY CurrentCarId
-IncreaseCarSpeedLoop
-;Adds speed
-	CLC
-	LDA AccelerateBuffer
-	ADC CarIdToAccelerateSpeed,Y
-	STA AccelerateBuffer
-	BCC ContinueIncreaseSpeedLoop ; Not enought in the buffer to change speed
-	INC Player0SpeedL
-	BNE ContinueIncreaseSpeedLoop ; When turns Zero again, increase MSB
-	INC Player0SpeedH
-ContinueIncreaseSpeedLoop
-	DEX
-	BNE IncreaseCarSpeedLoop
-SkipIncreaseCarSpeed
-
-CheckIfAlreadyMaxSpeed
-	LDA Player0SpeedH
-	CMP #CAR_MAX_SPEED_H
-	BCC SkipAccelerate ; less than my max speed
-	BNE ResetToMaxSpeed ; Not equal, so if I am less, and not equal, I am more!
-	;High bit is max, compare the low
-	LDY CurrentCarId
-	LDA Player0SpeedL
-	CMP CarIdToMaxSpeedL,Y
-	BCC SkipAccelerate ; High bit is max, but low bit is not
-	;BEQ SkipAccelerate ; Optimize best case, but not worse case
-
-ResetToMaxSpeed ; Speed is more, or is already max
-	LDA #CAR_MAX_SPEED_H
-	STA Player0SpeedH
-	LDY CurrentCarId
-	LDA CarIdToMaxSpeedL,Y
-	STA Player0SpeedL
-SkipAccelerate
+CallProcessSpeed
+    JSR ProcessSpeed
 
 CallUpdateOffsets
     LDX #0 ; Player 0
@@ -1397,8 +1293,10 @@ SetGameRunning
 	STA AUDV0
 	LDA #SCORE_FONT_COLOR_START
 	STA ScoreFontColor
+    STA OpScoreFontColor
 	LDA #SCORE_FONT_HOLD_CHANGE
 	STA ScoreFontColorHoldChange
+    STA OpScoreFontColorHoldChange
 SkipGameStart
 
 ReadSwitches
@@ -1969,7 +1867,7 @@ ContinueSelectCarWithDpadLoop
 TestCollisionAndMove
 ; Until store the movemnt, Y contains the value to be stored.
 ; see if player0 colides with the rest
-	LDA #0; Just to test consistense Tmp2
+	LDA Tmp2
 	BEQ NoCollision	;skip if not hitting...
 	LDA CollisionCounter,X ; If colision is alredy happening, ignore!
 	BNE NoCollision	
@@ -2114,6 +2012,119 @@ PrepareNextUpdateLoop
 	INX
 	CPX Tmp3 ; Max X offset
 	BNE UpdateOffsetsLoop
+    RTS
+
+ProcessSpeed
+BreakOnTimeOver ; Uses LDX as the breaking speed
+	LDA #0
+    STA Tmp0 ; Break speed
+	LDA CountdownTimer
+	BNE Break
+	LDY CurrentCarId
+	LDA FrameCount0
+	AND CarIdToTimeoverBreakInterval,Y
+	BNE Break 
+	LDA #TIMEOVER_BREAK_SPEED
+    STA Tmp0
+	
+Break
+	LDA #%00100000	;Down in controller
+	BIT SWCHA 
+	BNE BreakNonZero
+	LDA INPT4 ;3
+	BPL BreakWhileAccelerating
+	LDY Gear
+	LDA GearToBreakSpeedTable,Y ; Different break speeds depending on speed.
+    STA Tmp0
+	JMP BreakNonZero
+BreakWhileAccelerating ; Allow better control while breaking.
+	LDA (#BREAK_SPEED / 2)
+    STA Tmp0
+
+BreakNonZero
+	LDA Tmp0
+	BEQ SkipBreak
+
+DecreaseSpeed
+	SEC
+	LDA Player0SpeedL
+	SBC Tmp0
+	STA Player0SpeedL
+	LDA Player0SpeedH
+	SBC #0
+	STA Player0SpeedH
+
+CheckMinSpeed
+	BMI ResetMinSpeed; Overflow d7 is set
+	CMP #CAR_MIN_SPEED_H
+	BEQ CompareLBreakSpeed; is the same as minimun, compare other byte.
+	BCS SkipAccelerateIfBreaking; Greater than min, we are ok! 
+
+CompareLBreakSpeed	
+	LDA Player0SpeedL
+	CMP #CAR_MIN_SPEED_L	
+	BCC ResetMinSpeed ; Less than memory
+	JMP SkipAccelerateIfBreaking ; We are greather than min speed in the low byte.
+
+ResetMinSpeed
+	LDA #CAR_MIN_SPEED_H
+	STA Player0SpeedH
+	LDA #CAR_MIN_SPEED_L
+	STA Player0SpeedL
+
+SkipAccelerateIfBreaking
+	JMP SkipAccelerate
+SkipBreak
+
+Acelerates
+	LDA CountdownTimer
+	BEQ SkipAccelerate; cannot accelerate if timer is zero
+
+ContinueAccelerateTest
+	LDA INPT4 ;3
+	BPL IncreaseCarSpeed ; Test button and then up, both accelerate.
+	LDA #%00010000	;UP in controller
+	BIT SWCHA 
+	BNE SkipAccelerate
+
+IncreaseCarSpeed
+	LDA #2
+    STA Tmp0 ; Loop control
+	LDY CurrentCarId
+IncreaseCarSpeedLoop
+;Adds speed
+	CLC
+	LDA AccelerateBuffer
+	ADC CarIdToAccelerateSpeed,Y
+	STA AccelerateBuffer
+	BCC ContinueIncreaseSpeedLoop ; Not enought in the buffer to change speed
+	INC Player0SpeedL
+	BNE ContinueIncreaseSpeedLoop ; When turns Zero again, increase MSB
+	INC Player0SpeedH
+ContinueIncreaseSpeedLoop
+	DEC Tmp0
+	BNE IncreaseCarSpeedLoop
+SkipIncreaseCarSpeed
+
+CheckIfAlreadyMaxSpeed
+	LDA Player0SpeedH
+	CMP #CAR_MAX_SPEED_H
+	BCC SkipAccelerate ; less than my max speed
+	BNE ResetToMaxSpeed ; Not equal, so if I am less, and not equal, I am more!
+	;High bit is max, compare the low
+	LDY CurrentCarId
+	LDA Player0SpeedL
+	CMP CarIdToMaxSpeedL,Y
+	BCC SkipAccelerate ; High bit is max, but low bit is not
+	;BEQ SkipAccelerate ; Optimize best case, but not worse case
+
+ResetToMaxSpeed ; Speed is more, or is already max
+	LDA #CAR_MAX_SPEED_H
+	STA Player0SpeedH
+	LDY CurrentCarId
+	LDA CarIdToMaxSpeedL,Y
+	STA Player0SpeedL
+SkipAccelerate
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
