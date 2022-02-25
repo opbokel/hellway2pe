@@ -279,6 +279,7 @@ SetGameNotRunning
 ConfigureTimer
     LDA #INITIAL_COUNTDOWN_TIME ;2
 	STA CountdownTimer ;3
+    STA OpCountdownTimer ;3
 
 ConfigurePlayer1XPosition
     LDA #PLAYER_1_X_START ;2
@@ -445,6 +446,7 @@ EverySecond ; 64 frames to be more precise
 	CMP CountdownTimer
 	BEQ SkipEverySecondAction ; Stop at Zero
 	DEC CountdownTimer
+    DEC OpCountdownTimer
 SkipEverySecondAction
 
 ChangeTextFlickerMode
@@ -459,6 +461,10 @@ ChangeTextFlickerMode
 EndChangeTextFlickerMode
 
 CallProcessSpeed
+    LDX #0
+    JSR ProcessSpeed
+
+    INX ; Player 1
     JSR ProcessSpeed
 
 CallUpdateOffsets
@@ -2014,13 +2020,16 @@ PrepareNextUpdateLoop
 	BNE UpdateOffsetsLoop
     RTS
 
+; X Player 0 or 1
+; Tmp1 Down SWCHA mask
+; Tmp2 Up SWCHA mask
 ProcessSpeed
 BreakOnTimeOver ; Uses LDX as the breaking speed
 	LDA #0
     STA Tmp0 ; Break speed
-	LDA CountdownTimer
+	LDA CountdownTimer,X
 	BNE Break
-	LDY CurrentCarId
+	LDY CurrentCarId,X
 	LDA FrameCount0
 	AND CarIdToTimeoverBreakInterval,Y
 	BNE Break 
@@ -2028,12 +2037,12 @@ BreakOnTimeOver ; Uses LDX as the breaking speed
     STA Tmp0
 	
 Break
-	LDA #%00100000	;Down in controller
+	LDA PlayerToDownMask,X	;Down in controller
 	BIT SWCHA 
 	BNE BreakNonZero
-	LDA INPT4 ;3
+	LDA INPT4,X ;3
 	BPL BreakWhileAccelerating
-	LDY Gear
+	LDY Gear,X
 	LDA GearToBreakSpeedTable,Y ; Different break speeds depending on speed.
     STA Tmp0
 	JMP BreakNonZero
@@ -2047,12 +2056,12 @@ BreakNonZero
 
 DecreaseSpeed
 	SEC
-	LDA Player0SpeedL
+	LDA Player0SpeedL,X
 	SBC Tmp0
-	STA Player0SpeedL
-	LDA Player0SpeedH
+	STA Player0SpeedL,X
+	LDA Player0SpeedH,X
 	SBC #0
-	STA Player0SpeedH
+	STA Player0SpeedH,X
 
 CheckMinSpeed
 	BMI ResetMinSpeed; Overflow d7 is set
@@ -2061,69 +2070,69 @@ CheckMinSpeed
 	BCS SkipAccelerateIfBreaking; Greater than min, we are ok! 
 
 CompareLBreakSpeed	
-	LDA Player0SpeedL
+	LDA Player0SpeedL,X
 	CMP #CAR_MIN_SPEED_L	
 	BCC ResetMinSpeed ; Less than memory
 	JMP SkipAccelerateIfBreaking ; We are greather than min speed in the low byte.
 
 ResetMinSpeed
 	LDA #CAR_MIN_SPEED_H
-	STA Player0SpeedH
+	STA Player0SpeedH,X
 	LDA #CAR_MIN_SPEED_L
-	STA Player0SpeedL
+	STA Player0SpeedL,X
 
 SkipAccelerateIfBreaking
 	JMP SkipAccelerate
 SkipBreak
 
 Acelerates
-	LDA CountdownTimer
+	LDA CountdownTimer,X
 	BEQ SkipAccelerate; cannot accelerate if timer is zero
 
 ContinueAccelerateTest
-	LDA INPT4 ;3
+	LDA INPT4,X ;3
 	BPL IncreaseCarSpeed ; Test button and then up, both accelerate.
-	LDA #%00010000	;UP in controller
+	LDA PlayerToUpMask,X	;UP in controller
 	BIT SWCHA 
 	BNE SkipAccelerate
 
 IncreaseCarSpeed
 	LDA #2
     STA Tmp0 ; Loop control
-	LDY CurrentCarId
+	LDY CurrentCarId,X
 IncreaseCarSpeedLoop
 ;Adds speed
 	CLC
-	LDA AccelerateBuffer
+	LDA AccelerateBuffer,X
 	ADC CarIdToAccelerateSpeed,Y
-	STA AccelerateBuffer
+	STA AccelerateBuffer,X
 	BCC ContinueIncreaseSpeedLoop ; Not enought in the buffer to change speed
-	INC Player0SpeedL
+	INC Player0SpeedL,X
 	BNE ContinueIncreaseSpeedLoop ; When turns Zero again, increase MSB
-	INC Player0SpeedH
+	INC Player0SpeedH,X
 ContinueIncreaseSpeedLoop
 	DEC Tmp0
 	BNE IncreaseCarSpeedLoop
 SkipIncreaseCarSpeed
 
 CheckIfAlreadyMaxSpeed
-	LDA Player0SpeedH
+	LDA Player0SpeedH,X
 	CMP #CAR_MAX_SPEED_H
 	BCC SkipAccelerate ; less than my max speed
 	BNE ResetToMaxSpeed ; Not equal, so if I am less, and not equal, I am more!
 	;High bit is max, compare the low
-	LDY CurrentCarId
-	LDA Player0SpeedL
+	LDY CurrentCarId,X
+	LDA Player0SpeedL,X
 	CMP CarIdToMaxSpeedL,Y
 	BCC SkipAccelerate ; High bit is max, but low bit is not
 	;BEQ SkipAccelerate ; Optimize best case, but not worse case
 
 ResetToMaxSpeed ; Speed is more, or is already max
 	LDA #CAR_MAX_SPEED_H
-	STA Player0SpeedH
-	LDY CurrentCarId
+	STA Player0SpeedH,X
+	LDY CurrentCarId,X
 	LDA CarIdToMaxSpeedL,Y
-	STA Player0SpeedL
+	STA Player0SpeedL,X
 SkipAccelerate
     RTS
 
@@ -2291,6 +2300,23 @@ EndQrCodeLoop
 	JSR Sleep32Lines
 	JMP PrepareOverscan
     
+PlayerToUpMask
+    .byte #%00010000;
+    .byte #%00000001;
+
+PlayerToDownMask
+    .byte #%00100000;
+    .byte #%00000010;
+
+
+PlayerToLeftMask
+    .byte #%01000000;
+    .byte #%00000100;
+
+PlayerToRightMask
+    .byte #%10000000;
+    .byte #%00001000;
+
 	org $FD00
 Font	
 C0
