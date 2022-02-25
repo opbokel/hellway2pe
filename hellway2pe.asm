@@ -492,10 +492,6 @@ ConfigureOpponentLine ; Temporary
 
 CallTestColisionAndMove
     LDX #0 ; Player 0
-    LDA #%01000000 ; Left player 0
-    STA Tmp0
-    LDA #%10000000 ; right player 0
-    STA Tmp1
     ; Colision with traffic, each player check different flags,
     LDA FrameCount0
     AND #%00000001
@@ -511,10 +507,6 @@ SkipColisionPlayer0 ; Should not colide on opponent side.
     JSR TestCollisionAndMove
     
     INX ; player 1
-    LDA #%00000100 ; Left player 1
-    STA Tmp0
-    LDA #%00001000 ; right player 1
-    STA Tmp1
     LDA FrameCount0
     AND #%00000001
     BNE SkipColisionPlayer1 ; Test colision after draw frame
@@ -1866,8 +1858,6 @@ ContinueSelectCarWithDpadLoop
 
 ; Movement and colision are binded because the car must be moved after duplicate size.
 ; Use X for the player
-; Tmp0 SWCHA Turn left Mask
-; Tmp1 SWCHA Turn right Mask
 ; Tmp2 Traffic colision result
 ; Tmp3 Opponent Colision result (Not implemented)
 TestCollisionAndMove
@@ -1935,7 +1925,7 @@ PrepareReadXAxis
 	LDA Player0X,X
 BeginReadLeft
 	BEQ SkipMoveLeft ; We do not move after maximum
-	LDA Tmp0	;Left mask set before call (player 0 or 1)
+	LDA PlayerToLeftMask,X	;Left mask 
 	BIT SWCHA
 	BNE SkipMoveLeft
 	LDY #$10	;a 1 in the left nibble means go left
@@ -1946,7 +1936,7 @@ BeginReadRight
     LDA Player0X,X
 	CMP #PLAYER_MAX_X
 	BEQ SkipMoveRight ; At max already
-	LDA Tmp1	;Right mask set before call (player 0 or 1)
+	LDA PlayerToRightMask,X	;Right mask set before call (player 0 or 1)
 	BIT SWCHA 
 	BNE SkipMoveRight
 	LDY #$F0	;a -1 in the left nibble means go right...
@@ -2021,8 +2011,6 @@ PrepareNextUpdateLoop
     RTS
 
 ; X Player 0 or 1
-; Tmp1 Down SWCHA mask
-; Tmp2 Up SWCHA mask
 ProcessSpeed
 BreakOnTimeOver ; Uses LDX as the breaking speed
 	LDA #0
