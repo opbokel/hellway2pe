@@ -439,15 +439,12 @@ SkipUpdateLogicJump
 	JMP SkipUpdateLogic
 ContinueWithGameLogic
 
-EverySecond ; 64 frames to be more precise
-	LDA #%00111111
-	AND FrameCount0
-	BNE SkipEverySecondAction
-	CMP CountdownTimer
-	BEQ SkipEverySecondAction ; Stop at Zero
-	DEC CountdownTimer
-    DEC OpCountdownTimer
-SkipEverySecondAction
+CallEverySecond ; Timer for now
+    LDX #0
+    JSR EverySecond
+    INX 
+    JSR EverySecond
+
 
 ChangeTextFlickerMode
 	LDA SwitchDebounceCounter
@@ -1420,6 +1417,7 @@ UseNextDifficultyTime
 StoreDifficultyTime
 	LDA TrafficTimeTable,Y
 	STA CheckpointTime
+    STA OpCheckpointTime
 
 CheckRandomDifficulty
 	LDA GameMode
@@ -1431,6 +1429,7 @@ RandomDifficulty
 	;EOR TrafficChance, no need, lets make life simple
 	AND #%00111111
 	STA TrafficChance
+    STA OpTrafficChance
 	
 ReturnFromNextDifficulty
 	RTS
@@ -2122,6 +2121,16 @@ ResetToMaxSpeed ; Speed is more, or is already max
 	LDA CarIdToMaxSpeedL,Y
 	STA Player0SpeedL,X
 SkipAccelerate
+    RTS
+
+EverySecond ; 64 frames to be more precise
+	LDA #%00111111
+	AND FrameCount0
+	BNE SkipEverySecondAction
+	CMP CountdownTimer,X
+	BEQ SkipEverySecondAction ; Stop at Zero
+	DEC CountdownTimer,X
+SkipEverySecondAction
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
