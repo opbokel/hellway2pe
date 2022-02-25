@@ -518,27 +518,13 @@ SkipColisionPlayer1
 
 SkipUpdateLogic ; Continue here if not paused
 
-CalculateGear
-	LDA Player0SpeedL  ;3
-	AND #%10000000      ;2
-	ORA Player0SpeedH   ;3
-	CLC                 ;2
-	ROL                 ;2
-	ADC #0 ; 2 Places the possible carry produced by ROL
-	STA Gear
-
-EndProcessingBorder
-
-ProcessScoreFontColor
-	LDX ScoreFontColorHoldChange
-	BEQ ResetScoreFontColor
-	DEX
-	STX ScoreFontColorHoldChange
-	JMP SkipScoreFontColor
-ResetScoreFontColor
-	LDA #SCORE_FONT_COLOR
-	STA ScoreFontColor
-SkipScoreFontColor
+CallStatusUpdateSbr
+    LDX #0
+    JSR CalculateGear
+    JSR ProcessScoreFontColor
+    INX
+    JSR CalculateGear
+    JSR ProcessScoreFontColor
 
 IsGameOver
 	LDA CountdownTimer
@@ -2131,6 +2117,28 @@ EverySecond ; 64 frames to be more precise
 	BEQ SkipEverySecondAction ; Stop at Zero
 	DEC CountdownTimer,X
 SkipEverySecondAction
+    RTS
+
+CalculateGear
+	LDA Player0SpeedL,X  ;3
+	AND #%10000000      ;2
+	ORA Player0SpeedH,X   ;3
+	CLC                 ;2
+	ROL                 ;2
+	ADC #0 ; 2 Places the possible carry produced by ROL
+	STA Gear,X
+    RTS
+
+ProcessScoreFontColor
+	LDY ScoreFontColorHoldChange,X
+	BEQ ResetScoreFontColor
+	DEY
+	STY ScoreFontColorHoldChange,X
+	JMP SkipScoreFontColor
+ResetScoreFontColor
+	LDA #SCORE_FONT_COLOR
+	STA ScoreFontColor,X
+SkipScoreFontColor
     RTS
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
