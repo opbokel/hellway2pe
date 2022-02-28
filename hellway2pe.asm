@@ -432,6 +432,10 @@ SelectCarWithDpadCall ; Only do it when game is stoped
     JSR SelectCarWithDpad
     INX ; Player 1
     JSR SelectCarWithDpad
+
+    ; Needs to draw the opponent in the correct line even when game stoped  
+    ; Draeing is a destructive operation
+    JSR ProcessOpponentLine 
     
 CallConfigureCarSprites
     JSR ConfigureCarSprites
@@ -483,38 +487,11 @@ CallUpdateOffsets
     STA Tmp5
     JSR UpdateOffsets
 
-ConfigureOpponentLine ; Temporary
-    LDA #20 ; Extract to constant
+CallProcessOpponentLine
+    ;JSR ProcessOpponentLine 
+    ;SLEEP 90
+    LDA #20
     STA OpponentLine
-
-CallTestColisionAndMove
-    LDX #0 ; Player 0
-    ; Colision with traffic, each player check different flags,
-    LDA FrameCount0
-    AND #%00000001
-    BEQ SkipColisionPlayer0 ; Test colision after draw frame
-    LDA CXM1P
-    LSR 
-	ORA CXM0P
-	ORA CXP0FB
-	; ORA CXPPMM ; Collision between players will have its own rules
-SkipColisionPlayer0 ; Should not colide on opponent side.
-	AND #%01000000 ; Accounting for random noise in the bus	
-    STA Tmp2	
-    JSR TestCollisionAndMove
-    
-    INX ; player 1
-    LDA FrameCount0
-    AND #%00000001
-    BNE SkipColisionPlayer1 ; Test colision after draw frame
-    LDA CXM0P
-    LSR 
-	ORA CXM1P
-	ORA CXP1FB
-SkipColisionPlayer1
-    AND #%01000000 ; Accounting for random noise in the bus	
-    STA Tmp2	
-    JSR TestCollisionAndMove
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -570,6 +547,9 @@ IsTimeOver
 SkipIsTimeOver
 
     JSR ConfigureCarSprites ; Every frame since roles are reversed!
+
+CallProcessSound
+    JSR ProcessSound
 
 PrintEasterEggCondition
 	LDA FrameCount1
@@ -901,7 +881,7 @@ OpEorOffsetWithCarry
 OpAfterEorOffsetWithCarry ;17
 	TAX ;2
 	LDA AesTable,X ; 4
-	CMP TrafficChance;3
+	CMP OpTrafficChance;3
 	BCS OpFinishDrawTraffic1 ; 2
 	LDA #$FF ;2
 	STA ENAM0Cache;3
@@ -924,7 +904,7 @@ OpEorOffsetWithCarry2
 OpAfterEorOffsetWithCarry2 ;17
 	TAX ;2
 	LDA AesTable,X ; 4
-	CMP TrafficChance;3
+	CMP OpTrafficChance;3
 	BCS OpFinishDrawTraffic2 ; 2
 	LDA #%00000010 ;2
 	STA ENABLCache;3
@@ -947,7 +927,7 @@ OpEorOffsetWithCarry3
 OpAfterEorOffsetWithCarry3 ;17
 	TAX ;2
 	LDA AesTable,X ; 4
-	CMP TrafficChance;3
+	CMP OpTrafficChance;3
 	BCS OpFinishDrawTraffic3 ; 2 
 	LDA #%00000010 ;2
 	STA ENAM1Cache
@@ -1152,6 +1132,119 @@ PrepareOverscan
 	LDA #6 ; 2 more lines before overscan (was 37)...
 	STA TIM64T	
 
+;Read Fire Button before, will make it start the game for now.
+StartGame
+	LDA INPT4 ;3
+    AND INPT5 ;3 player 
+	BMI SkipGameStart ;2 ;not pressed the fire button in negative in bit 7
+    LDA FrameCount0
+    AND #%00000001
+    BNE SkipGameStart ; Starts only on even frames, so we avoid players to have the screen swaped (hack).
+	LDA GameStatus ;3
+	ORA SwitchDebounceCounter ; Do not start during debounce
+	BNE SkipGameStart
+	LDA GameMode
+	CMP #MAX_GAME_MODE
+	BNE SetGameRunning
+	LDA #0
+	STA GameMode
+	LDA #SWITCHES_DEBOUNCE_TIME
+	STA SwitchDebounceCounter
+	JMP SkipGameStart
+SetGameRunning 
+	INC GameStatus
+	LDA #0;
+	STA FrameCount0
+	STA FrameCount1
+	LDA #10
+	STA AUDV0
+	LDA #SCORE_FONT_COLOR_START
+	STA ScoreFontColor
+    STA OpScoreFontColor
+	LDA #SCORE_FONT_HOLD_CHANGE
+	STA ScoreFontColorHoldChange
+    STA OpScoreFontColorHoldChange
+SkipGameStart
+
+ReadSwitches
+	LDX SwitchDebounceCounter
+	BNE DecrementSwitchDebounceCounter
+	LDA #%00000001
+	BIT SWCHB
+	BNE SkipReset 
+	LDA #SWITCHES_DEBOUNCE_TIME
+	STA SwitchDebounceCounter
+	JMP OverScanWaitBeforeReset
+SkipReset
+
+GameModeSelect
+	LDA GameStatus ;We don't read game select while running and save precious cycles
+	BNE SkipGameSelect
+	JSR ConfigureDifficulty ; Keeps randomizing dificulty for modes 8 to F, also resets it for other modes
+ContinueGameSelect
+	LDA #%00000010
+	BIT SWCHB
+	BNE SkipGameSelect
+	LDX GameMode
+	CPX #MAX_GAME_MODE
+	BEQ ResetGameMode
+	INX
+	JMP StoreGameMode
+ResetGameMode
+	LDX #0
+StoreGameMode
+	STX GameMode
+	LDA #SWITCHES_DEBOUNCE_TIME
+	STA SwitchDebounceCounter
+SkipGameSelect
+	JMP EndReadSwitches
+DecrementSwitchDebounceCounter
+	DEC SwitchDebounceCounter
+EndReadSwitches
+
+; Last thing, will overrride hmove
+CallTestColisionAndMove
+    LDX #0 ; Player 0
+    ; Colision with traffic, each player check different flags,
+    LDA FrameCount0
+    AND #%00000001
+    BNE SkipColisionPlayer0 ; Test colision after draw frame
+    LDA CXM1P
+    LSR 
+	ORA CXM0P
+	ORA CXP0FB
+	; ORA CXPPMM ; Collision between players will have its own rules
+SkipColisionPlayer0 ; Should not colide on opponent side.
+	AND #%01000000 ; Accounting for random noise in the bus	
+    STA Tmp2	
+    JSR TestCollisionAndMove
+    
+    INX ; player 1
+    LDA FrameCount0
+    AND #%00000001
+    BEQ SkipColisionPlayer1 ; Test colision after draw frame
+    LDA CXM0P
+    LSR 
+	ORA CXM1P
+	ORA CXP1FB
+SkipColisionPlayer1
+    AND #%01000000 ; Accounting for random noise in the bus	
+    STA Tmp2	
+    JSR TestCollisionAndMove
+
+OverScanWait
+	LDA INTIM	
+	BNE OverScanWait ;Is there a better way?	
+	JMP MainLoop      
+
+OverScanWaitBeforeReset
+	LDA INTIM	
+	BNE OverScanWaitBeforeReset ;Is there a better way?	
+	JMP Start   
+
+Subroutines
+
+ProcessSound
 LeftSound ;41
 	LDA CountdownTimer ;3
 	BEQ EngineOff      ;2
@@ -1245,88 +1338,7 @@ MuteRightSound
 	LDA #0
 	STA AUDV1
 EndRightSound
-
-;Read Fire Button before, will make it start the game for now.
-StartGame
-	LDA INPT4 ;3
-    AND INPT5 ;3 player 
-	BMI SkipGameStart ;2 ;not pressed the fire button in negative in bit 7
-    LDA FrameCount0
-    AND #%00000001
-    BNE SkipGameStart ; Starts only on even frames, so we avoid players to have the screen swaped (hack).
-	LDA GameStatus ;3
-	ORA SwitchDebounceCounter ; Do not start during debounce
-	BNE SkipGameStart
-	LDA GameMode
-	CMP #MAX_GAME_MODE
-	BNE SetGameRunning
-	LDA #0
-	STA GameMode
-	LDA #SWITCHES_DEBOUNCE_TIME
-	STA SwitchDebounceCounter
-	JMP SkipGameStart
-SetGameRunning 
-	INC GameStatus
-	LDA #0;
-	STA FrameCount0
-	STA FrameCount1
-	LDA #10
-	STA AUDV0
-	LDA #SCORE_FONT_COLOR_START
-	STA ScoreFontColor
-    STA OpScoreFontColor
-	LDA #SCORE_FONT_HOLD_CHANGE
-	STA ScoreFontColorHoldChange
-    STA OpScoreFontColorHoldChange
-SkipGameStart
-
-ReadSwitches
-	LDX SwitchDebounceCounter
-	BNE DecrementSwitchDebounceCounter
-	LDA #%00000001
-	BIT SWCHB
-	BNE SkipReset 
-	LDA #SWITCHES_DEBOUNCE_TIME
-	STA SwitchDebounceCounter
-	JMP OverScanWaitBeforeReset
-SkipReset
-
-GameModeSelect
-	LDA GameStatus ;We don't read game select while running and save precious cycles
-	BNE SkipGameSelect
-	JSR ConfigureDifficulty ; Keeps randomizing dificulty for modes 8 to F, also resets it for other modes
-ContinueGameSelect
-	LDA #%00000010
-	BIT SWCHB
-	BNE SkipGameSelect
-	LDX GameMode
-	CPX #MAX_GAME_MODE
-	BEQ ResetGameMode
-	INX
-	JMP StoreGameMode
-ResetGameMode
-	LDX #0
-StoreGameMode
-	STX GameMode
-	LDA #SWITCHES_DEBOUNCE_TIME
-	STA SwitchDebounceCounter
-SkipGameSelect
-	JMP EndReadSwitches
-DecrementSwitchDebounceCounter
-	DEC SwitchDebounceCounter
-EndReadSwitches
-
-OverScanWait
-	LDA INTIM	
-	BNE OverScanWait ;Is there a better way?	
-	JMP MainLoop      
-
-OverScanWaitBeforeReset
-	LDA INTIM	
-	BNE OverScanWaitBeforeReset ;Is there a better way?	
-	JMP Start   
-
-Subroutines
+    RTS
 
 ClearAll ; 52
 	LDA #0  	  ;2
@@ -1391,8 +1403,10 @@ ConfigureDifficulty
 	LDY CurrentDifficulty ;Needed, not always NextDifficulty is entrypoint
 	LDA TrafficChanceTable,Y
 	STA TrafficChance
+    STA OpTrafficChance ; Needs FIX
 	LDA TrafficColorTable,Y
 	STA TrafficColor
+    STA OpTrafficColor ; Needs FIX
 
 	LDA GameMode;
 	AND #%00000001
@@ -1409,17 +1423,16 @@ CheckRandomDifficulty
 	LDA GameMode
 	AND #%00001000 ; Random difficulties
 	BEQ ReturnFromNextDifficulty
-RandomDifficulty
+RandomDifficulty ; need work to make 2 players compatible
 	LDX FrameCount0
 	LDA AesTable,X
 	;EOR TrafficChance, no need, lets make life simple
 	AND #%00111111
 	STA TrafficChance
-    STA OpTrafficChance
+    STA OpTrafficChance ; While not fix
 	
 ReturnFromNextDifficulty
 	RTS
-EndNextDifficulty
 
 DefaultOffsets
 	LDA #$20
@@ -1839,6 +1852,31 @@ ContinueSelectCarWithDpadLoop
     LSR Tmp0
     DEY
     BPL SelectCarWithDpadLoop
+    RTS
+
+ProcessOpponentLine
+    SEC
+    LDA TrafficOffset0 + 1
+    SBC OpTrafficOffset0 + 1
+    STA Tmp0
+    LDA TrafficOffset0 + 2
+    SBC OpTrafficOffset0 + 2
+    STA Tmp1
+    CLC
+    LDA Tmp0
+    ADC #(GAMEPLAY_AREA - 8) ; I need to investigate why 8 is the correct number...
+    STA Tmp0
+    LDA Tmp1
+    ADC #0
+    BEQ OpponentVisible ; Less than 128 diff.
+OpponentNotVisible
+    LDA #$FF ; For now, just removing from screen
+    STA OpponentLine
+    JMP ReturnFromProcessOpponentLine
+OpponentVisible
+    LDA Tmp0
+    STA OpponentLine
+ReturnFromProcessOpponentLine
     RTS
 
 ; Movement and colision are binded because the car must be moved after duplicate size.
