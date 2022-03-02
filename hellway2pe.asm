@@ -400,15 +400,6 @@ DeterministicGame
 EndRandomizeGame
 
 
-; Move this in the code and save cycles, for some reason spliting is breaking...
-    LDX #3
-BurnAllHMove    
-    STA WSYNC ;3
-    STA HMOVE; 3/10 
-    DEX
-    BNE BurnAllHMove
-    ;STA WSYNC ;3 
-
 CountFrame	
 	INC FrameCount0 ; 5
 	BNE SkipIncFC1 ; 2 When it is zero again should increase the MSB
@@ -488,10 +479,8 @@ CallUpdateOffsets
     JSR UpdateOffsets
 
 CallProcessOpponentLine
-    ;JSR ProcessOpponentLine 
-    ;SLEEP 90
-    LDA #20
-    STA OpponentLine
+    JSR ProcessOpponentLine 
+
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -792,7 +781,9 @@ PrepareForTraffic
 	JSR ClearPF ; 32
 
 	STA WSYNC
+    STA HMOVE
 	STA WSYNC
+    STA HMOVE
 
 	LDA #%00110000 ; 2 Score mode
 	STA CTRLPF ;3
@@ -812,7 +803,7 @@ PrepareForTraffic
 
     LDX Tmp3 ; Background color.
 
-	SLEEP 9 ; Odd sleep destroys flags
+	SLEEP 6 ; Odd sleep destroys flags
 
     LDA FrameCount0 ;Brach flag
     AND #%00000001 
@@ -1347,12 +1338,14 @@ MuteRightSound
 EndRightSound
     RTS
 
-ClearAll ; 52
+ClearAll ; 58
 	LDA #0  	  ;2
+    STA GRP0      ;3
 	STA GRP1      ;3
 	STA ENABL     ;3
 	STA ENAM0     ;3
 	STA ENAM1     ;3
+    STA GRP0Cache ;3
 	STA GRP1Cache ;3
 	STA ENABLCache ;3
 	STA ENAM0Cache ;3
@@ -1614,6 +1607,7 @@ DrawScoreD4 ; 20
 	BPL ScoreLoop ;4
 
 	STA WSYNC
+    STA HMOVE
 	JSR LoadAll
 	RTS ; 6
 
@@ -1816,6 +1810,14 @@ Sleep32Lines
 	JSR Sleep8Lines
 	RTS
 
+;X = number of WSYNC HMOVE to run
+HMoveXTimes
+    STA WSYNC ;3
+    STA HMOVE; 3/10 
+    DEX
+    BNE HMoveXTimes
+    RTS
+
 ConfigureCarSprites
     LDA FrameCount0
     AND #%00000001
@@ -1863,13 +1865,27 @@ ContinueSelectCarWithDpadLoop
     RTS
 
 ProcessOpponentLine
+    LDA FrameCount0
+    AND #%00000001
     SEC
+    BNE Player0IsOpponent
+Player1IsOpponent ; Code could be reused?
     LDA TrafficOffset0 + 1
     SBC OpTrafficOffset0 + 1
     STA Tmp0
     LDA TrafficOffset0 + 2
     SBC OpTrafficOffset0 + 2
     STA Tmp1
+    JMP AddOffsetToOpponentLine
+Player0IsOpponent
+    LDA OpTrafficOffset0 + 1
+    SBC TrafficOffset0 + 1
+    STA Tmp0
+    LDA OpTrafficOffset0 + 2
+    SBC TrafficOffset0 + 2
+    STA Tmp1
+
+AddOffsetToOpponentLine
     CLC
     LDA Tmp0
     ADC #(GAMEPLAY_AREA - 8) ; I need to investigate why 8 is the correct number...
@@ -2317,6 +2333,8 @@ StoreReversedQrCode
 	STY COLUBK
 
 ContinueQrCode
+    LDX #8
+    JSR HMoveXTimes
 	LDY #QR_CODE_SIZE - 1
 	LDX #QR_CODE_LINE_HEIGHT
 	JSR WaitForVblankEnd
