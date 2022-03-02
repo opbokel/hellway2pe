@@ -302,7 +302,8 @@ ConfigureNextCheckpoint
 	STA NextCheckpoint
 
 	LDA #0 ; Avoid missile reseting position 
-	SLEEP 4;
+	;SLEEP 41
+    SLEEP 4;
 	STA RESM0
 	SLEEP 2;
 	STA RESBL
@@ -400,14 +401,13 @@ EndRandomizeGame
 
 
 ; Move this in the code and save cycles, for some reason spliting is breaking...
-    LDX #8
+    LDX #3
 BurnAllHMove    
     STA WSYNC ;3
     STA HMOVE; 3/10 
     DEX
     BNE BurnAllHMove
-    STA WSYNC ;3
-    STA HMCLR; 
+    ;STA WSYNC ;3 
 
 CountFrame	
 	INC FrameCount0 ; 5
@@ -1122,16 +1122,17 @@ FinishScanLoop ; 7 209 of 222
 	STA WSYNC ; do stuff!
 	STA WSYNC
 	STA WSYNC
-	;42 cycles to use here
 
 PrepareOverscan
 	LDA #2		
-	STA WSYNC  	
+	STA WSYNC  
+    ;STA HMOVE	; HMOVE 10
 	STA VBLANK 	
 	
 	LDA #6 ; 2 more lines before overscan (was 37)...
 	STA TIM64T	
 
+    STA HMCLR ; Before we process car movement
 ;Read Fire Button before, will make it start the game for now.
 StartGame
 	LDA INPT4 ;3
@@ -1164,6 +1165,7 @@ SetGameRunning
 	LDA #SCORE_FONT_HOLD_CHANGE
 	STA ScoreFontColorHoldChange
     STA OpScoreFontColorHoldChange
+    JMP OverScanWait ; Do not process player movement and also start
 SkipGameStart
 
 ReadSwitches
@@ -1201,6 +1203,11 @@ SkipGameSelect
 DecrementSwitchDebounceCounter
 	DEC SwitchDebounceCounter
 EndReadSwitches
+
+DoNotTurnBeforeStart
+    ;STA HMCLR
+    LDA GameStatus
+    BEQ OverScanWait
 
 ; Last thing, will overrride hmove
 CallTestColisionAndMove
@@ -1549,6 +1556,7 @@ PrintScore ; Runs in 2 lines, this is the best I can do!
 
 ScoreLoop ; 20 
 	STA WSYNC ;2
+    STA HMOVE
 
 	LDA PF0Cache  ;3 Move to a macro?
 	STA PF0		  ;3
