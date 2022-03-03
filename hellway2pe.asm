@@ -1230,6 +1230,9 @@ SkipColisionPlayer1
     STA Tmp2	
     JSR TestCollisionAndMove
 
+ClearCollision
+    STA CXCLR	;reset the collision detection for next frame.
+
 OverScanWait
 	LDA INTIM	
 	BNE OverScanWait ;Is there a better way?	
@@ -1992,8 +1995,6 @@ SkipMoveRight
 StoreHMove
 	STY HMP0,X	;set the move for player 0
 
-ClearCollision
-    STA CXCLR	;reset the collision detection for next frame.
     RTS
 
 ; X Traffic offset 4 bits each lane, 4 lanes per player
