@@ -556,54 +556,57 @@ LeftScoreWrite
 	LDA GameStatus
 	BEQ PrintHellwayLeft
 WriteDistance ;Not optimized yet, ugly code.
-Digit0Distance
-	LDA TrafficOffset0 + 1 ;3
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	TAX ; 2
-	LDA FontLookup,X ;4
-	STA ScoreD3 ;3
-
-Digit1Distance
-	LDA TrafficOffset0 + 2 ;3
+Digit0Timer
+	LDA CountdownTimer ;3
 	AND #%00001111 ;2
 	TAX ; 2
 	LDA FontLookup,X ;4 
-	STA ScoreD2 ;3
-
-Digit2Distance
-	LDA TrafficOffset0 + 2 ;3
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	TAX ; 2
-	LDA FontLookup,X ;4
 	STA ScoreD1 ;3
 
-Digit3Distance
-	LDA Traffic0Msb ;3
-	AND #%00001111 ;2
-	TAX ; 2
-	LDA FontLookup,X ;4 
-	STA ScoreD0 ;3
-
-DistanceOverflowDigit ; If overflow, the pipe becomes the last digit
-	LDA Traffic0Msb
-	AND #%11110000 ;2
-	BNE DrawDistanceExtraDigit
-	LDA #<Pipe + #FONT_OFFSET;3
-	STA ScoreD4 ;3
-	JMP EndDrawDistance
-DrawDistanceExtraDigit
+Digit1Timer
+	LDA CountdownTimer ;3
 	LSR ; 2
 	LSR ; 2
 	LSR ; 2
 	LSR ; 2
 	TAX ; 2
 	LDA FontLookup,X ;4
+	STA ScoreD0 ;3
+
+SpeedBar
+	LDA Player0SpeedL
+	AND #%11100000 ;2 Discard the last bits
+	CLC
+	ROL ;First goes into carry
+	ROL
+	ROL
+    ROL
+	STA Tmp0
+	LDA Player0SpeedH
+	ASL
+	ASL
+    ASL
+	ORA Tmp0
+	TAX ; 2
+	LDA SpeedToBarLookup,X ;4
+	STA ScoreD2 ;3
+
+DistanceCheckpointCount ; Will run all letters in the future
+    LDA TrafficOffset0 + 2 ;3
+	AND #%11110000 ;2
+    LSR
+    LSR
+    LSR
+    LSR
+	TAX ; 2
+	LDA FontLookup,X ;4 
+	STA ScoreD3 ;3
+
+DistanceBar ; 16 subdivisions per checkpoint
+	LDA TrafficOffset0 + 2 ;3
+	AND #%00001111 ;2
+	TAX ; 2
+	LDA BarLookup,X ;4 
 	STA ScoreD4 ;3
 
 EndDrawDistance
@@ -640,51 +643,60 @@ RightScoreWrite
 	LDA ScoreFontColor
 	CMP #SCORE_FONT_COLOR_OVER
 	BEQ PrintGameOver
-Digit0Timer
-	LDA CountdownTimer ;3
+    
+OpDigit0Timer
+	LDA OpCountdownTimer ;3
 	AND #%00001111 ;2
 	TAX ; 2
 	LDA FontLookup,X ;4 
-	STA ScoreD1 ;3
-
-Digit1Timer
-	LDA CountdownTimer ;3
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	LSR ; 2
-	TAX ; 2
-	LDA FontLookup,X ;4
-	STA ScoreD0 ;3
-
-	LDA #<Pipe + #FONT_OFFSET ;3
-	STA ScoreD2 ;3
-
-Digit0Speed
-	LDA Player0SpeedL
-	AND #%00111100 ;2 Discard the last bits
-	LSR ; 2
-	LSR ; 2
-	TAX ; 2
-	LDA FontLookup,X ;4
 	STA ScoreD4 ;3
 
-Digit1Speed
-	LDA Player0SpeedL
-	AND #%11000000 ;2 Discard the last bits
+OpDigit1Timer
+	LDA OpCountdownTimer ;3
+	LSR ; 2
+	LSR ; 2
+	LSR ; 2
+	LSR ; 2
+	TAX ; 2
+	LDA FontLookup,X ;4
+	STA ScoreD3 ;3
+
+OpSpeedBar
+	LDA Player1SpeedL
+	AND #%11100000 ;2 Discard the last bits
 	CLC
 	ROL ;First goes into carry
 	ROL
 	ROL
+    ROL
 	STA Tmp0
-	LDA Player0SpeedH
+	LDA Player1SpeedH
 	ASL
 	ASL
+    ASL
 	ORA Tmp0
 	TAX ; 2
-	LDA FontLookup,X ;4
-	STA ScoreD3 ;3
-	JMP RightScoreWriteEnd
+	LDA SpeedToBarLookup,X ;4
+	STA ScoreD2 ;3
+
+OpDistanceCheckpointCount ; Will run all letters in the future
+    LDA OpTrafficOffset0 + 2 ;3
+	AND #%11110000 ;2
+    LSR
+    LSR
+    LSR
+    LSR
+	TAX ; 2
+	LDA FontLookup,X ;4 
+	STA ScoreD1 ;3
+
+OpDistanceBar ; 16 subdivisions per checkpoint
+	LDA OpTrafficOffset0 + 2 ;3
+	AND #%00001111 ;2
+	TAX ; 2
+	LDA BarLookup,X ;4 
+	STA ScoreD0 ;3
+    JMP RightScoreWriteEnd
 
 PrintHellwayRight
 	LDA FrameCount1
@@ -2317,6 +2329,47 @@ FontLookup ; Very fast font lookup for dynamic values!
 	.byte #<CE + #FONT_OFFSET
 	.byte #<CF + #FONT_OFFSET
 	.byte #<CG + #FONT_OFFSET
+
+BarLookup ; Very fast font lookup for dynamic values (vertical bar)!
+	.byte #<C0B + #FONT_OFFSET
+	.byte #<C1B + #FONT_OFFSET
+	.byte #<C2B + #FONT_OFFSET
+	.byte #<C3B + #FONT_OFFSET
+	.byte #<C4B + #FONT_OFFSET
+	.byte #<C5B + #FONT_OFFSET 
+	.byte #<C6B + #FONT_OFFSET
+	.byte #<C7B + #FONT_OFFSET
+	.byte #<C8B + #FONT_OFFSET 
+	.byte #<C9B + #FONT_OFFSET
+	.byte #<CAB + #FONT_OFFSET 
+	.byte #<CBB + #FONT_OFFSET 
+	.byte #<CCB + #FONT_OFFSET
+	.byte #<CDB + #FONT_OFFSET
+	.byte #<CEB + #FONT_OFFSET
+	.byte #<CFB + #FONT_OFFSET
+
+SpeedToBarLookup ; Speed will vary from 0 to 20 and mapped to a 0 to 15 space
+	.byte #<C0B + #FONT_OFFSET
+    .byte #<C0B + #FONT_OFFSET
+	.byte #<C1B + #FONT_OFFSET
+    .byte #<C1B + #FONT_OFFSET
+	.byte #<C2B + #FONT_OFFSET
+    .byte #<C2B + #FONT_OFFSET
+	.byte #<C3B + #FONT_OFFSET
+    .byte #<C3B + #FONT_OFFSET
+	.byte #<C4B + #FONT_OFFSET
+    .byte #<C4B + #FONT_OFFSET
+	.byte #<C5B + #FONT_OFFSET 
+	.byte #<C6B + #FONT_OFFSET
+	.byte #<C7B + #FONT_OFFSET
+	.byte #<C8B + #FONT_OFFSET 
+	.byte #<C9B + #FONT_OFFSET
+	.byte #<CAB + #FONT_OFFSET 
+	.byte #<CBB + #FONT_OFFSET 
+	.byte #<CCB + #FONT_OFFSET
+	.byte #<CDB + #FONT_OFFSET
+	.byte #<CEB + #FONT_OFFSET
+	.byte #<CFB + #FONT_OFFSET
 
 	org $FD00
 Font	
