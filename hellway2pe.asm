@@ -540,15 +540,6 @@ SkipIsTimeOver
 CallProcessSound
     JSR ProcessSound
 
-PrintEasterEggCondition
-	LDA FrameCount1
-	AND #%00111000
-	ORA GameStatus
-	CMP #%00111000
-	BNE ChooseTextSide
-	JSR PrintEasterEgg
-	JMP RightScoreWriteEnd
-
 ;Could be done during on vblank to save this comparisson time (before draw score), 
 ;but I am saving vblank cycles for now, in case of 2 players.
 ChooseTextSide ; 
@@ -1467,85 +1458,6 @@ PrintStaticText ; Preload X with the offset referent to StaticText
 	STA ScoreD4
 	RTS
 
-PrintEasterEgg ; Not very optimized, but I have cycles to spare.
-	LDA #SCORE_FONT_COLOR_EASTER_EGG
-	STA ScoreFontColor
-	LDA #1
-	STA ScoreFontColorHoldChange
-
-	LDA FrameCount1
-	AND #%00000111
-	STA Tmp3
-	;0 is Zelda Name, (default)
-	LDA #1
-	CMP Tmp3
-	BEQ PrintZeldaDateLeft
-
-	LDA #2
-	CMP Tmp3
-	BEQ PrintPolvinhosLeft
-
-	LDA #3
-	CMP Tmp3
-	BEQ PrintPolvinhosDateLeft
-
-	LDA #4
-	CMP Tmp3
-	BEQ PrintIvonneLeft
-
-	LDA #5
-	CMP Tmp3
-	BEQ PrintIvonneDateLeft
-
-	LDA #6
-	CMP Tmp3
-	BEQ PrintArtLeft
-
-	LDA #7
-	CMP Tmp3
-	BEQ PrintLeonardoLeft
-	
-PrintZeldaLeft
-	LDX #<ZeldaTextLeft
-	JMP ProcessPrintEasterEgg
-PrintPolvinhosLeft
-	LDX #<PolvinhosTextLeft
-	JMP ProcessPrintEasterEgg
-PrintIvonneLeft
-	LDX #<IvonneTextLeft
-	JMP ProcessPrintEasterEgg
-PrintArtLeft
-	LDX #<PaperArtTextLeft
-	JMP ProcessPrintEasterEgg
-
-PrintZeldaDateLeft
-	LDX #<ZeldaDateLeft
-	JMP ProcessPrintEasterEgg
-PrintPolvinhosDateLeft
-	LDX #<PolvinhosDateLeft
-	JMP ProcessPrintEasterEgg
-PrintIvonneDateLeft
-	LDX #<IvonneDateLeft
-	JMP ProcessPrintEasterEgg
-PrintLeonardoLeft
-	LDX #<LeonardoTextLeft
-	JMP ProcessPrintEasterEgg
-
-ProcessPrintEasterEgg
-	LDA FrameCount0 ;3
-	AND #%00000001 ;2
-	BNE TranformIntoRightText
-	JMP PrintEasterEggText
-TranformIntoRightText ; Just adds 5 to X, texts are properly aligned
-	TXA
-	CLC
-	ADC #HALF_TEXT_SIZE
-	TAX
-
-PrintEasterEggText
-	JSR PrintStaticText
-	RTS
-
 PrintScore ; Runs in 2 lines, this is the best I can do!
 	LDX #0
 	LDY #FONT_OFFSET
@@ -2204,6 +2116,62 @@ ResetScoreFontColor
 SkipScoreFontColor
     RTS
 
+; Moved here because of rom space.
+; The only SBR in constants space
+DrawQrCode
+	LDX #QR_CODE_BACKGROUNG ;2
+	LDY #QR_CODE_COLOR ;2
+	LDA #%00000001 ; Mirror playfield
+	STA CTRLPF
+	JSR ClearAll ; To be 100 sure!
+	LDA SWCHB
+	AND #%00001000 ; If Black and white, this will make A = 0
+    EOR #%00001000 ; Make black the default, can be optimized.
+	BEQ StoreReversedQrCode
+	STX COLUBK
+	STY COLUPF
+	JMP ContinueQrCode
+StoreReversedQrCode
+	STX COLUPF
+	STY COLUBK
+
+ContinueQrCode
+    LDX #8
+    JSR HMoveXTimes
+	LDY #QR_CODE_SIZE - 1
+	LDX #QR_CODE_LINE_HEIGHT
+	JSR WaitForVblankEnd
+	JSR Sleep8Lines
+	JSR Sleep8Lines
+	JSR Sleep8Lines
+
+QrCodeLoop ;Assync mirroed playfield, https://atariage.com/forums/topic/149228-a-simple-display-timing-diagram/
+	STA WSYNC
+	LDA QrCode1,Y ; 4
+	STA PF1  ;3
+	LDA QrCode2,Y ;4
+	STA PF2 ;3
+	SLEEP 27 ; 
+	LDA QrCode3,Y ;4
+	STA PF2 ;3 Write ends at cycle 48 exactly!
+	LDA QrCode4,Y ; 4
+	STA PF1  ;3
+
+	DEX ;2
+	BNE QrCodeLoop ;2
+	LDX #QR_CODE_LINE_HEIGHT ;2
+	DEY ;2
+	BPL QrCodeLoop ;4
+
+EndQrCodeLoop
+	STA WSYNC ;
+	LDA #0
+	STA PF1  ;3
+	STA PF2  ;3
+
+	JSR Sleep32Lines
+	JMP PrepareOverscan
+
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
 	org $FC00
 QrCode1
@@ -2313,62 +2281,6 @@ QrCode4
 	.byte #%00001011
 	.byte #%00001000
 	.byte #%00001111
-
-; Moved here because of rom space.
-; The only SBR in constants space
-DrawQrCode
-	LDX #QR_CODE_BACKGROUNG ;2
-	LDY #QR_CODE_COLOR ;2
-	LDA #%00000001 ; Mirror playfield
-	STA CTRLPF
-	JSR ClearAll ; To be 100 sure!
-	LDA SWCHB
-	AND #%00001000 ; If Black and white, this will make A = 0
-    EOR #%00001000 ; Make black the default, can be optimized.
-	BEQ StoreReversedQrCode
-	STX COLUBK
-	STY COLUPF
-	JMP ContinueQrCode
-StoreReversedQrCode
-	STX COLUPF
-	STY COLUBK
-
-ContinueQrCode
-    LDX #8
-    JSR HMoveXTimes
-	LDY #QR_CODE_SIZE - 1
-	LDX #QR_CODE_LINE_HEIGHT
-	JSR WaitForVblankEnd
-	JSR Sleep8Lines
-	JSR Sleep8Lines
-	JSR Sleep8Lines
-
-QrCodeLoop ;Assync mirroed playfield, https://atariage.com/forums/topic/149228-a-simple-display-timing-diagram/
-	STA WSYNC
-	LDA QrCode1,Y ; 4
-	STA PF1  ;3
-	LDA QrCode2,Y ;4
-	STA PF2 ;3
-	SLEEP 27 ; 
-	LDA QrCode3,Y ;4
-	STA PF2 ;3 Write ends at cycle 48 exactly!
-	LDA QrCode4,Y ; 4
-	STA PF1  ;3
-
-	DEX ;2
-	BNE QrCodeLoop ;2
-	LDX #QR_CODE_LINE_HEIGHT ;2
-	DEY ;2
-	BPL QrCodeLoop ;4
-
-EndQrCodeLoop
-	STA WSYNC ;
-	LDA #0
-	STA PF1  ;3
-	STA PF2  ;3
-
-	JSR Sleep32Lines
-	JMP PrepareOverscan
     
 PlayerToUpMask
     .byte #%00010000;
@@ -2386,6 +2298,25 @@ PlayerToLeftMask
 PlayerToRightMask
     .byte #%10000000;
     .byte #%00001000;
+
+FontLookup ; Very fast font lookup for dynamic values!
+	.byte #<C0 + #FONT_OFFSET
+	.byte #<C1 + #FONT_OFFSET
+	.byte #<C2 + #FONT_OFFSET
+	.byte #<C3 + #FONT_OFFSET
+	.byte #<C4 + #FONT_OFFSET
+	.byte #<C5 + #FONT_OFFSET 
+	.byte #<C6 + #FONT_OFFSET
+	.byte #<C7 + #FONT_OFFSET
+	.byte #<C8 + #FONT_OFFSET 
+	.byte #<C9 + #FONT_OFFSET
+	.byte #<CA + #FONT_OFFSET 
+	.byte #<CB + #FONT_OFFSET 
+	.byte #<CC + #FONT_OFFSET
+	.byte #<CD + #FONT_OFFSET
+	.byte #<CE + #FONT_OFFSET
+	.byte #<CF + #FONT_OFFSET
+	.byte #<CG + #FONT_OFFSET
 
 	org $FD00
 Font	
@@ -2517,13 +2448,6 @@ CL
 	.byte #%00100100; 
 	.byte #%00100100;
 
-CI
-	.byte #%01000010;
-	.byte #%01000010; 
-	.byte #%01000010; 
-	.byte #%01000010; 
-	.byte #%01000010;
-
 CM
 	.byte #%10100101;
 	.byte #%10100101; 
@@ -2602,12 +2526,6 @@ CZ
 	.byte #%10000001; 
 	.byte #%11100111;
 
-Pipe
-	.byte #%01000010;
-	.byte #%00000000; 
-	.byte #%01000010; 
-	.byte #%00000000; 
-	.byte #%01000010;
 
 Exclamation
 	.byte #%01000010;
@@ -2623,6 +2541,7 @@ Dot
 	.byte #%00000000; 
 	.byte #%00000000;
 
+Pipe
 Colon
 	.byte #%01000010;
 	.byte #%01000010; 
@@ -2637,75 +2556,106 @@ Triangle
 	.byte #%11000011; 
 	.byte #%10000001;
 
-Space ; Moved from the beggining so 0 to F is fast to draw.
-	.byte #0;
-	.byte #0;
-	.byte #0;
-	.byte #0;
-	.byte #0;
+Space
+C0B
+	.byte #%00000000;
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;	
+C1B	
+	.byte #%00100100;
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C2B
+	.byte #%01100110;
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C3B
+	.byte #%11100111;
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C4B
+	.byte #%11100111;
+	.byte #%00100100; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C5B
+	.byte #%11100111;
+	.byte #%01100110; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C6B
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%00000000; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C7B
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%00100100; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C8B
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%01100110; 
+	.byte #%00000000; 
+	.byte #%00000000;
+C9B
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%00000000; 
+	.byte #%00000000;
+CAB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%00100100; 
+	.byte #%00000000;
+CBB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%01100110; 
+	.byte #%00000000;
+CCB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%00000000;
 
-FontLookup ; Very fast font lookup for dynamic values!
-	.byte #<C0 + #FONT_OFFSET
-	.byte #<C1 + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET
-	.byte #<C3 + #FONT_OFFSET
-	.byte #<C4 + #FONT_OFFSET
-	.byte #<C5 + #FONT_OFFSET 
-	.byte #<C6 + #FONT_OFFSET
-	.byte #<C7 + #FONT_OFFSET
-	.byte #<C8 + #FONT_OFFSET 
-	.byte #<C9 + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET 
-	.byte #<CB + #FONT_OFFSET 
-	.byte #<CC + #FONT_OFFSET
-	.byte #<CD + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET
-	.byte #<CF + #FONT_OFFSET
-	.byte #<CG + #FONT_OFFSET
+CDB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%00100100;
 
-EngineSoundType
-	.byte #2
-	.byte #2
-	.byte #14
-	.byte #6
-	.byte #6
-	.byte #14
+CEB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%01100110;
 
-EngineBaseFrequence
-	.byte #31
-	.byte #21
-	.byte #20
-	.byte #31
-	.byte #22
-	.byte #3
-
-TachometerSizeLookup1
-	.byte #%00011111
-	.byte #%00111111
-	.byte #%01111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-
-TachometerSizeLookup2
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%10000000
-	.byte #%11000000
-	.byte #%11100000
-	.byte #%11110000
-
-TachometerGearLookup
-	.byte #%00000001
-	.byte #%00000010
-	.byte #%00000100
-	.byte #%00001000
-	.byte #%00010000
-	.byte #%00110000
+CFB
+	.byte #%11100111;
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%11100111; 
+	.byte #%11100111;
 
 	org $FE00
 AesTable
@@ -2784,127 +2734,57 @@ GoText
 	.byte #<Exclamation + #FONT_OFFSET 
 	.byte #<Exclamation + #FONT_OFFSET
 
-ZeldaTextLeft
-	.byte #<CZ + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET
-	.byte #<CL + #FONT_OFFSET
-	.byte #<CD + #FONT_OFFSET 
-	.byte #<CA + #FONT_OFFSET
-
-ZeldaTextRight
-	.byte #<Space + #FONT_OFFSET
-	.byte #<CM + #FONT_OFFSET
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<CB + #FONT_OFFSET 
-	.byte #<Dot + #FONT_OFFSET
-
-ZeldaDateLeft
-	.byte #<C2 + #FONT_OFFSET
-	.byte #<C9 + #FONT_OFFSET
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET 
-	.byte #<C6 + #FONT_OFFSET
-
-ZeldaDateRight
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET 
-	.byte #<C0 + #FONT_OFFSET
-
-PolvinhosTextLeft
-	.byte #<CP + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CL + #FONT_OFFSET
-	.byte #<CV + #FONT_OFFSET 
-	.byte #<CI + #FONT_OFFSET
-
-PolvinhosTextRight
-	.byte #<CN + #FONT_OFFSET
-	.byte #<CH + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CS + #FONT_OFFSET 
-	.byte #<Space + #FONT_OFFSET
-
-PolvinhosDateLeft
-	.byte #<C2 + #FONT_OFFSET
-	.byte #<C7 + #FONT_OFFSET
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET 
-	.byte #<C9 + #FONT_OFFSET
-
-PolvinhosDateRight
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET
-	.byte #<C1 + #FONT_OFFSET 
-	.byte #<C4 + #FONT_OFFSET
-
-IvonneTextLeft
-	.byte #<CV + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<Space + #FONT_OFFSET 
-	.byte #<CI + #FONT_OFFSET
-
-IvonneTextRight
-	.byte #<CV + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CN + #FONT_OFFSET
-	.byte #<CN + #FONT_OFFSET 
-	.byte #<CE + #FONT_OFFSET
-
-IvonneDateLeft
-	.byte #<C1 + #FONT_OFFSET
-	.byte #<C4 + #FONT_OFFSET
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET 
-	.byte #<C2 + #FONT_OFFSET
-
-IvonneDateRight
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C1 + #FONT_OFFSET
-	.byte #<C9 + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET 
-	.byte #<C8 + #FONT_OFFSET
-
-PaperArtTextLeft
-	.byte #<CP + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<CP + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET 
-	.byte #<CR + #FONT_OFFSET
-
-PaperArtTextRight
-	.byte #<Space + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<CR + #FONT_OFFSET
-	.byte #<CT + #FONT_OFFSET 
-	.byte #<Space + #FONT_OFFSET
-
-LeonardoTextLeft
-	.byte #<CL + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CN + #FONT_OFFSET 
-	.byte #<CA + #FONT_OFFSET
-
-LeonardoTextRight
-	.byte #<CR + #FONT_OFFSET
-	.byte #<CD + #FONT_OFFSET
-	.byte #<CO + #FONT_OFFSET
-	.byte #<Space + #FONT_OFFSET 
-	.byte #<CN + #FONT_OFFSET
-
 VersionText
-	.byte #<C1 + #FONT_OFFSET
+	.byte #<C0 + #FONT_OFFSET
 	.byte #<Dot + #FONT_OFFSET
-	.byte #<C4 + #FONT_OFFSET
-	.byte #<C3 + #FONT_OFFSET 
+	.byte #<C5 + #FONT_OFFSET
+	.byte #<C1 + #FONT_OFFSET 
 	.byte #<Triangle + #FONT_OFFSET
-
-
 EndStaticText
+
+TachometerSizeLookup1
+	.byte #%00011111
+	.byte #%00111111
+	.byte #%01111111
+	.byte #%11111111
+	.byte #%11111111
+	.byte #%11111111
+	.byte #%11111111
+	.byte #%11111111
+
+TachometerSizeLookup2
+	.byte #%00000000
+	.byte #%00000000
+	.byte #%00000000
+	.byte #%00000000
+	.byte #%10000000
+	.byte #%11000000
+	.byte #%11100000
+	.byte #%11110000
+
+TachometerGearLookup
+	.byte #%00000001
+	.byte #%00000010
+	.byte #%00000100
+	.byte #%00001000
+	.byte #%00010000
+	.byte #%00110000
+
+EngineSoundType
+	.byte #2
+	.byte #2
+	.byte #14
+	.byte #6
+	.byte #6
+	.byte #14
+
+EngineBaseFrequence
+	.byte #31
+	.byte #21
+	.byte #20
+	.byte #31
+	.byte #22
+	.byte #3
 
 CarSprite0 ; Upside down, Original Car
 	ds (CAR_START_LINE - 7)
