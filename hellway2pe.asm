@@ -2349,22 +2349,22 @@ SpeedToBarLookup ; Speed will vary from 0 to 20 and mapped to a 0 to 15 space
 	.byte #<C0B + #FONT_OFFSET
     .byte #<C0B + #FONT_OFFSET
 	.byte #<C1B + #FONT_OFFSET
-    .byte #<C1B + #FONT_OFFSET
 	.byte #<C2B + #FONT_OFFSET
-    .byte #<C2B + #FONT_OFFSET
 	.byte #<C3B + #FONT_OFFSET
     .byte #<C3B + #FONT_OFFSET
-	.byte #<C4B + #FONT_OFFSET
     .byte #<C4B + #FONT_OFFSET
 	.byte #<C5B + #FONT_OFFSET 
 	.byte #<C6B + #FONT_OFFSET
-	.byte #<C7B + #FONT_OFFSET
+	.byte #<C6B + #FONT_OFFSET
+    .byte #<C7B + #FONT_OFFSET
 	.byte #<C8B + #FONT_OFFSET 
 	.byte #<C9B + #FONT_OFFSET
-	.byte #<CAB + #FONT_OFFSET 
+	.byte #<C9B + #FONT_OFFSET 
+    .byte #<CAB + #FONT_OFFSET 
 	.byte #<CBB + #FONT_OFFSET 
 	.byte #<CCB + #FONT_OFFSET
-	.byte #<CDB + #FONT_OFFSET
+	.byte #<CCB + #FONT_OFFSET
+    .byte #<CDB + #FONT_OFFSET
 	.byte #<CEB + #FONT_OFFSET
 	.byte #<CFB + #FONT_OFFSET
 

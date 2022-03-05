@@ -2948,20 +2948,20 @@
    2349  fc8d		       b3		      .byte.b	#<C0B + #FONT_OFFSET
    2350  fc8e		       b3		      .byte.b	#<C0B + #FONT_OFFSET
    2351  fc8f		       b8		      .byte.b	#<C1B + #FONT_OFFSET
-   2352  fc90		       b8		      .byte.b	#<C1B + #FONT_OFFSET
-   2353  fc91		       bd		      .byte.b	#<C2B + #FONT_OFFSET
-   2354  fc92		       bd		      .byte.b	#<C2B + #FONT_OFFSET
-   2355  fc93		       c2		      .byte.b	#<C3B + #FONT_OFFSET
-   2356  fc94		       c2		      .byte.b	#<C3B + #FONT_OFFSET
-   2357  fc95		       c7		      .byte.b	#<C4B + #FONT_OFFSET
-   2358  fc96		       c7		      .byte.b	#<C4B + #FONT_OFFSET
-   2359  fc97		       cc		      .byte.b	#<C5B + #FONT_OFFSET
-   2360  fc98		       d1		      .byte.b	#<C6B + #FONT_OFFSET
-   2361  fc99		       d6		      .byte.b	#<C7B + #FONT_OFFSET
-   2362  fc9a		       db		      .byte.b	#<C8B + #FONT_OFFSET
-   2363  fc9b		       e0		      .byte.b	#<C9B + #FONT_OFFSET
-   2364  fc9c		       e5		      .byte.b	#<CAB + #FONT_OFFSET
-   2365  fc9d		       ea		      .byte.b	#<CBB + #FONT_OFFSET
+   2352  fc90		       bd		      .byte.b	#<C2B + #FONT_OFFSET
+   2353  fc91		       c2		      .byte.b	#<C3B + #FONT_OFFSET
+   2354  fc92		       c2		      .byte.b	#<C3B + #FONT_OFFSET
+   2355  fc93		       c7		      .byte.b	#<C4B + #FONT_OFFSET
+   2356  fc94		       cc		      .byte.b	#<C5B + #FONT_OFFSET
+   2357  fc95		       d1		      .byte.b	#<C6B + #FONT_OFFSET
+   2358  fc96		       d1		      .byte.b	#<C6B + #FONT_OFFSET
+   2359  fc97		       d6		      .byte.b	#<C7B + #FONT_OFFSET
+   2360  fc98		       db		      .byte.b	#<C8B + #FONT_OFFSET
+   2361  fc99		       e0		      .byte.b	#<C9B + #FONT_OFFSET
+   2362  fc9a		       e0		      .byte.b	#<C9B + #FONT_OFFSET
+   2363  fc9b		       e5		      .byte.b	#<CAB + #FONT_OFFSET
+   2364  fc9c		       ea		      .byte.b	#<CBB + #FONT_OFFSET
+   2365  fc9d		       ef		      .byte.b	#<CCB + #FONT_OFFSET
    2366  fc9e		       ef		      .byte.b	#<CCB + #FONT_OFFSET
    2367  fc9f		       f4		      .byte.b	#<CDB + #FONT_OFFSET
    2368  fca0		       f9		      .byte.b	#<CEB + #FONT_OFFSET
