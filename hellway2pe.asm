@@ -57,9 +57,10 @@ SCORE_BACKGROUND_COLOR = $A0
 
 SCORE_FONT_COLOR_EASTER_EGG = $38
 
+PLAYER0_COLOR = $F9
 PLAYER1_COLOR = $96
 
-SCORE_FONT_COLOR = $F9
+SCORE_FONT_COLOR = PLAYER0_COLOR
 SCORE_FONT_COLOR_GOOD = $D8
 SCORE_FONT_COLOR_BAD = $44
 SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
@@ -740,22 +741,18 @@ ConfigurePFForScore
 	LDA #%00000010 ; Score mode
 	STA CTRLPF
 	LDA TextSide ;3
-	BNE RightScoreOn ; Half of the screen with the correct colors.
+	BNE LeftScoreOn ; Half of the screen with the correct colors.
+RightScoreOn
+	LDA OpScoreFontColor
+	STA COLUP1
+	LDA Tmp2
+	STA COLUP0
+	JMP CallWaitForVblankEnd
 LeftScoreOn
 	LDA ScoreFontColor
-	STA COLUP1
-	LDA Tmp2
-	STA COLUP0
-	LDA #1 ;Jumps faster in the draw loop
-	STA Tmp1
-	JMP CallWaitForVblankEnd
-RightScoreOn
-	LDA ScoreFontColor
 	STA COLUP0
 	LDA Tmp2
 	STA COLUP1
-	LDA #0 ;Jumps faster in the draw loop
-	STA Tmp1
 
 ; After here we are going to update the screen, No more heavy code
 CallWaitForVblankEnd
@@ -2123,7 +2120,7 @@ ProcessScoreFontColor
 	STY ScoreFontColorHoldChange,X
 	JMP SkipScoreFontColor
 ResetScoreFontColor
-	LDA #SCORE_FONT_COLOR
+	LDA PlayerToDefaultColor,X
 	STA ScoreFontColor,X
 SkipScoreFontColor
     RTS
@@ -2370,6 +2367,10 @@ SpeedToBarLookup ; Speed will vary from 0 to 20 and mapped to a 0 to 15 space
 	.byte #<CDB + #FONT_OFFSET
 	.byte #<CEB + #FONT_OFFSET
 	.byte #<CFB + #FONT_OFFSET
+
+PlayerToDefaultColor
+    .byte #PLAYER0_COLOR
+    .byte #PLAYER1_COLOR
 
 	org $FD00
 Font	
