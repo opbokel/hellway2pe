@@ -150,8 +150,7 @@ TrafficColor = $C2
 OpTrafficColor = $C3
 CurrentDifficulty = $C4
 OpCurrentDifficulty = $C5
-GameMode = $C6 ; Bit 0 controls fixed levels, bit 1 random positions, 
-				;Bit 2 speed delta, Bit 3 random traffic 
+GameMode = $C6 ; Bit 0 controls fixed levels, bit 1 random positions, Bit 2 speed delta, Bit 3 random traffic 
 
 CurrentCarId = $C7
 OpCurrentCarId = $C8
@@ -197,6 +196,7 @@ BeforeStart ;All variables that are kept on game reset or select
 	LDY #0
 	STY SwitchDebounceCounter
 	STY CurrentDifficulty
+    STY OpCurrentDifficulty
 	STY GameStatus
     STY CurrentCarId
     STY OpCurrentCarId
@@ -229,6 +229,8 @@ CleanMem
     CPX #OpCurrentCarId
 	BEQ SkipClean
 	CPX #CurrentDifficulty
+	BEQ SkipClean
+    CPX #OpCurrentDifficulty
 	BEQ SkipClean
 	CPX #GameStatus
 	BEQ SkipClean
@@ -271,6 +273,10 @@ CallConfigureDifficulty
 	BNE StoreCurrentDifficulty ; Do not change car for a game running reset
 StoreCurrentDifficulty
 	STX CurrentDifficulty
+    STX OpCurrentDifficulty
+    LDX #0
+	JSR ConfigureDifficulty
+    INX
 	JSR ConfigureDifficulty
 
 SetGameNotRunning
@@ -285,6 +291,10 @@ ConfigureTimer
 ConfigurePlayer1XPosition
     LDA #PLAYER_1_X_START ;2
 	STA Player1X ;3
+
+ConfigureOpNextCheckpoint
+    LDA #CHECKPOINT_INTERVAL
+	STA OpNextCheckpoint
 
 HPositioning ; Avoid sleep doing needed stuff
 	STA WSYNC
@@ -493,49 +503,17 @@ CallStatusUpdateSbr
     JSR CalculateGear
     JSR ProcessScoreFontColor
 
-IsGameOver
-	LDA CountdownTimer
-	ORA Player0SpeedL
-	ORA Player0SpeedH
-	BNE IsCheckpoint
-	LDA #1
-	STA ScoreFontColorHoldChange
-	LDA #SCORE_FONT_COLOR_OVER
-	STA ScoreFontColor
-	JMP SkipIsTimeOver
+CallProcessPlayerStatus
+    LDA TrafficOffset0 + 2 ; Not sequential to OpTrafficOffset0
+    STA Tmp0
+    LDX #0
+    JSR ProcessPlayerStatus
+    LDA OpTrafficOffset0 + 2
+    STA Tmp0
+    INX
+    JSR ProcessPlayerStatus
 
-IsCheckpoint
-	LDA NextCheckpoint
-	CMP TrafficOffset0 + 2
-	BNE SkipIsCheckpoint
-	CLC
-	ADC #CHECKPOINT_INTERVAL
-	STA NextCheckpoint
-	LDA #SCORE_FONT_COLOR_GOOD
-	STA ScoreFontColor
-	LDA #SCORE_FONT_HOLD_CHANGE
-	STA ScoreFontColorHoldChange
-	LDA CountdownTimer
-	CLC
-	ADC CheckpointTime
-	STA CountdownTimer
-	BCC JumpSkipTimeOver
-	LDA #$FF
-	STA CountdownTimer ; Does not overflow!
-JumpSkipTimeOver
-	JSR NextDifficulty ; Increments to the next dificulty (Will depend on game mode in the future)
-	JMP SkipIsTimeOver ; Checkpoints will add time, so no time over routine, should also override time over.
-SkipIsCheckpoint
-
-IsTimeOver
-	LDA CountdownTimer
-	BNE SkipIsTimeOver
-	LDA #1 ; Red while 0, so just sets for the next frame, might still pass a checkpoint by inertia
-	STA ScoreFontColorHoldChange
-	LDA #SCORE_FONT_COLOR_BAD
-	STA ScoreFontColor
-SkipIsTimeOver
-
+CallProcessPlayerSprites
     JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
 CallProcessSound
@@ -766,7 +744,8 @@ DrawScoreHud
 	STA WSYNC
 
 	LDA INPT4 ;3
-	BPL WaitAnotherScoreLine ; Draw traffic while button is pressed.
+	;BPL WaitAnotherScoreLine ; Draw traffic while button is pressed.
+    JMP WaitAnotherScoreLine ; Temporary disabling score, please enable line above!
 	LDA ScoreFontColor
 	CMP #SCORE_FONT_COLOR_OVER
 	BNE WaitAnotherScoreLine
@@ -790,7 +769,10 @@ PrepareForTraffic
 	LDA #%00110000 ; 2 Score mode
 	STA CTRLPF ;3
 	
-	LDA TrafficColor ;3
+    LDA FrameCount0;3
+    AND #%00000001;2
+    TAX ;2
+	LDA TrafficColor,X ;4
 	STA COLUPF ;3
 	
 	LDA #PLAYER1_COLOR ;2
@@ -804,7 +786,7 @@ PrepareForTraffic
 
 	LDY #GAMEPLAY_AREA ;2; (Score)
 
-	JSR ClearPF ; 32 Useless, but get to wait 32 cycles
+    SLEEP 24 ; Keep the backround color more time, only needed if still support non dark mode
 
     LDX Tmp3 ; Background color.
 
@@ -1394,25 +1376,23 @@ LoadAll ; 48
 	RTS ;6
 EndLoadAll
 
-NextDifficulty 
+NextDifficulty ;Is a SBR
 	LDA GameMode ; For now, even games change the difficult
 	AND #%00000001
 	BNE CheckRandomDifficulty
 
-	LDA CurrentDifficulty
+	LDA CurrentDifficulty,X
 	CLC
 	ADC #1
 	AND #%00000011 ; 0 to 3
-	STA CurrentDifficulty
+	STA CurrentDifficulty,X
 
-ConfigureDifficulty
-	LDY CurrentDifficulty ;Needed, not always NextDifficulty is entrypoint
+ConfigureDifficulty ;Is a SBR for performance optimization it is called directly
+	LDY CurrentDifficulty,X ;Needed, not always NextDifficulty is entrypoint
 	LDA TrafficChanceTable,Y
-	STA TrafficChance
-    STA OpTrafficChance ; Needs FIX
+	STA TrafficChance,X
 	LDA TrafficColorTable,Y
-	STA TrafficColor
-    STA OpTrafficColor ; Needs FIX
+	STA TrafficColor,X
 
 	LDA GameMode;
 	AND #%00000001
@@ -1422,20 +1402,18 @@ UseNextDifficultyTime
 	INY
 StoreDifficultyTime
 	LDA TrafficTimeTable,Y
-	STA CheckpointTime
-    STA OpCheckpointTime
+	STA CheckpointTime,X
 
 CheckRandomDifficulty
 	LDA GameMode
 	AND #%00001000 ; Random difficulties
 	BEQ ReturnFromNextDifficulty
 RandomDifficulty ; need work to make 2 players compatible
-	LDX FrameCount0
-	LDA AesTable,X
+	LDY FrameCount0
+	LDA AesTable,Y
 	;EOR TrafficChance, no need, lets make life simple
 	AND #%00111111
-	STA TrafficChance
-    STA OpTrafficChance ; While not fix
+	STA TrafficChance,X ; Cache winning player chance and use
 	
 ReturnFromNextDifficulty
 	RTS
@@ -2095,6 +2073,53 @@ ResetToMaxSpeed ; Speed is more, or is already max
 	STA Player0SpeedL,X
 SkipAccelerate
     RTS
+
+;Tmp0 Traffic Offset to compare with next checkpoint
+ProcessPlayerStatus
+IsGameOver
+	LDA CountdownTimer,X
+	ORA Player0SpeedL,X
+	ORA Player0SpeedH,X
+	BNE IsCheckpoint
+	LDA #1
+	STA ScoreFontColorHoldChange,X
+	LDA #SCORE_FONT_COLOR_OVER
+	STA ScoreFontColor,X
+	JMP SkipIsTimeOver
+
+IsCheckpoint
+	LDA NextCheckpoint,X
+	CMP Tmp0 ; TrafficOffset0 + 2 not sequential with OpTrafficOffset
+	BNE SkipIsCheckpoint
+	CLC
+	ADC #CHECKPOINT_INTERVAL
+	STA NextCheckpoint,X
+	LDA #SCORE_FONT_COLOR_GOOD
+	STA ScoreFontColor,X
+	LDA #SCORE_FONT_HOLD_CHANGE
+	STA ScoreFontColorHoldChange,X
+	LDA CountdownTimer,X
+	CLC
+	ADC CheckpointTime,X
+	STA CountdownTimer,X
+	BCC JumpSkipTimeOver
+	LDA #$FF
+	STA CountdownTimer,X ; Does not overflow!
+JumpSkipTimeOver
+	JSR NextDifficulty ; Increments to the next dificulty (Will depend on game mode in the future)
+	JMP SkipIsTimeOver ; Checkpoints will add time, so no time over routine, should also override time over.
+SkipIsCheckpoint
+
+IsTimeOver
+	LDA CountdownTimer,X
+	BNE SkipIsTimeOver
+	LDA #1 ; Red while 0, so just sets for the next frame, might still pass a checkpoint by inertia
+	STA ScoreFontColorHoldChange,X
+	LDA #SCORE_FONT_COLOR_BAD
+	STA ScoreFontColor,X
+SkipIsTimeOver
+    RTS
+
 
 EverySecond ; 64 frames to be more precise
 	LDA #%00111111
