@@ -642,6 +642,8 @@ RightScoreWrite
 	LDA GameStatus
 	BEQ PrintHellwayRight
 	LDA ScoreFontColor
+    CMP #SCORE_FONT_COLOR_START
+	BEQ PrintStartGame
 	CMP #SCORE_FONT_COLOR_OVER
 	BEQ PrintGameOver
     
@@ -797,13 +799,14 @@ PrepareForTraffic
 	LDA ScoreFontColor ;3
 	STA COLUP0 ;3
 
+    LDA OpScoreFontColor ;3
+	STA COLUP1 ;3
+
 	LDY #GAMEPLAY_AREA ;2; (Score)
 
 	JSR ClearPF ; 32 Useless, but get to wait 32 cycles
 
     LDX Tmp3 ; Background color.
-
-	SLEEP 6 ; Odd sleep destroys flags
 
     LDA FrameCount0 ;Brach flag
     AND #%00000001 
