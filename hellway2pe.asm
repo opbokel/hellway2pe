@@ -1781,6 +1781,9 @@ Player1IsOpponent ; Code could be reused?
     LDA TrafficOffset0 + 2
     SBC OpTrafficOffset0 + 2
     STA Tmp1
+    LDA Traffic0Msb
+    SBC OpTraffic0Msb
+    STA Tmp2
     JMP AddOffsetToOpponentLine
 Player0IsOpponent
     LDA OpTrafficOffset0 + 1
@@ -1789,13 +1792,18 @@ Player0IsOpponent
     LDA OpTrafficOffset0 + 2
     SBC TrafficOffset0 + 2
     STA Tmp1
-
+    LDA OpTraffic0Msb
+    SBC Traffic0Msb
+    STA Tmp2
+    
 AddOffsetToOpponentLine
     CLC
     LDA Tmp0
     ADC #(GAMEPLAY_AREA - 8) ; I need to investigate why 8 is the correct number...
     STA Tmp0
     LDA Tmp1
+    ADC #0
+    LDA Tmp2
     ADC #0
     BEQ OpponentVisible ; Less than 128 diff.
 OpponentNotVisible
