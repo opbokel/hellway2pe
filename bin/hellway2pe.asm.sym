@@ -9,9 +9,9 @@
 7.CYCLES                 0018              (R )
 8.CYCLES                 0018              (R )
 AccelerateBuffer         00dc              (R )
-Acelerates               fa6d                  
-AddOffsetToOpponentLine  f921                  
-AddsTheResult            f9de                  
+Acelerates               fa7f                  
+AddOffsetToOpponentLine  f91f                  
+AddsTheResult            f9f0                  
 AesTable                 fe00              (R )
 AfterEorOffsetWithCarry  f47a              (R )
 AfterEorOffsetWithCarry2 f495              (R )
@@ -25,15 +25,15 @@ AUDV1                    001a              (R )
 BACKGROUND_COLOR         0003              (R )
 BarLookup                fc7d              (R )
 BeforeStart              f000              (R )
-BeginReadLeft            f998                  
-BeginReadRight           f9a9                  
+BeginReadLeft            f9aa                  
+BeginReadRight           f9bb                  
 BLACK                    0000                  
 BlackAndWhiteScoreBg     f2fb              (R )
-Break                    fa26              (R )
+Break                    fa38              (R )
 BREAK_SPEED              000a              (R )
-BreakNonZero             fa40              (R )
-BreakOnTimeOver          fa11                  
-BreakWhileAccelerating   fa3c              (R )
+BreakNonZero             fa52              (R )
+BreakOnTimeOver          fa23                  
+BreakWhileAccelerating   fa4e              (R )
 C0                       fd00              (R )
 C0B                      fdaf              (R )
 C1                       fd05              (R )
@@ -56,10 +56,10 @@ C9                       fd2d              (R )
 C9B                      fddc              (R )
 CA                       fd32              (R )
 CAB                      fde1              (R )
-CalculateGear            fb07              (R )
-CalculateOffsetCache     fa04              (R )
-CalculatePlayer0Msb      f9f5                  
-CalculatePlayer1Msb      f9fe              (R )
+CalculateGear            fb19              (R )
+CalculateOffsetCache     fa16              (R )
+CalculatePlayer0Msb      fa07                  
+CalculatePlayer1Msb      fa10              (R )
 CalculateTextSide        f0e6                  
 CallConfigureCarSprites  f17a                  
 CallConfigureDifficulty  f071              (R )
@@ -111,8 +111,8 @@ CFB                      fdfa              (R )
 CG                       fd50              (R )
 CH                       fd55              (R )
 ChangeTextFlickerMode    f189                  
-CheckIfAlreadyMaxSpeed   fa97                  
-CheckMinSpeed            fa51                  
+CheckIfAlreadyMaxSpeed   faa9                  
+CheckMinSpeed            fa63                  
 CHECKPOINT_INTERVAL      0010              (R )
 CHECKPOINT_TIME_INTENSE  0027              (R )
 CHECKPOINT_TIME_LIGHT    001d              (R )
@@ -120,15 +120,15 @@ CHECKPOINT_TIME_REGULAR  0022              (R )
 CHECKPOINT_TIME_RUSH_HOUR 002c              (R )
 CheckpointText           ff00              (R )
 CheckpointTime           00c0              (R )
-CheckRandomDifficulty    f6c6              (R )
+CheckRandomDifficulty    f6c4              (R )
 ChooseTextSide           f1ec                  
 CK                       fd5a              (R )
 CL                       fd5f              (R )
 CleanMem                 f029              (R )
-ClearAll                 f65a              (R )
-ClearCollision           f5b0                  
-ClearPF                  f670              (R )
-ClearPFSkipLDA0          f672                  
+ClearAll                 f658              (R )
+ClearCollision           f5ae                  
+ClearPF                  f66e              (R )
+ClearPFSkipLDA0          f670                  
 CM                       fd64              (R )
 CN                       fd69                  
 CO                       fd6e              (R )
@@ -140,23 +140,23 @@ COLUBK                   0009              (R )
 COLUP0                   0006              (R )
 COLUP1                   0007              (R )
 COLUPF                   0008              (R )
-CompareLBreakSpeed       fa59              (R )
-ConfigureCarSprites      f8ad              (R )
-ConfigureDifficulty      f6ab              (R )
+CompareLBreakSpeed       fa6b              (R )
+ConfigureCarSprites      f8ab              (R )
+ConfigureDifficulty      f6a9              (R )
 ConfigureMissileSize     f09e                  
 ConfigureNextCheckpoint  f0a4                  
 ConfigureOpNextCheckpoint f094                  
-ConfigureOpponentCarSprite f8d2                  
+ConfigureOpponentCarSprite f8d0                  
 ConfigurePFForScore      f2ff                  
 ConfigurePlayer0XPosition f09a                  
 ConfigurePlayer1XPosition f090                  
 ConfigureTimer           f08a                  
 ConfigVBlankTimer        f10e                  
-ContinueAccelerateTest   fa71                  
+ContinueAccelerateTest   fa83                  
 ContinueGameSelect       f55b                  
-ContinueIncreaseSpeedLoop fa93              (R )
-ContinueQrCode           fb43              (R )
-ContinueSelectCarWithDpadLoop f8eb              (R )
+ContinueIncreaseSpeedLoop faa5              (R )
+ContinueQrCode           fb55              (R )
+ContinueSelectCarWithDpadLoop f8e9              (R )
 ContinueWithGameLogic    f180              (R )
 CountdownTimer           00b8              (R )
 CountFrame               f157                  
@@ -181,10 +181,10 @@ CXP1FB                   0003              (R )
 CXPPMM                   0007              (R )
 CY                       fd8c              (R )
 CZ                       fd96                  
-DecreaseSpeed            fa44                  
-DecrementCollision       f96b                  
+DecreaseSpeed            fa56                  
+DecrementCollision       f97d                  
 DecrementSwitchDebounceCounter f577              (R )
-DefaultOffsets           f6d6              (R )
+DefaultOffsets           f6d4              (R )
 DeterministicGame        f154              (R )
 Digit0Timer              f201                  
 Digit1Timer              f20b                  
@@ -195,27 +195,27 @@ Dot                      fda0              (R )
 DRAGSTER_TURN_MASK       0001              (R )
 DrawCache                f439              (R )
 DrawCar0                 f463                  
-DrawCheckpointCountLeft  f7fd                  
-DrawGameOverScoreLine    f7bd              (R )
-DrawGameOverScreenLeft   f7ca              (R )
-DrawGameOverScreenRight  f858              (R )
-DrawGameVersionLeft      f814                  
-DrawGlideTimerLeft       f7cf                  
-DrawHitCountLeft         f7e6                  
+DrawCheckpointCountLeft  f7fb                  
+DrawGameOverScoreLine    f7bb              (R )
+DrawGameOverScreenLeft   f7c8              (R )
+DrawGameOverScreenRight  f856              (R )
+DrawGameVersionLeft      f812                  
+DrawGlideTimerLeft       f7cd                  
+DrawHitCountLeft         f7e4                  
 DrawOponent              f4bc                  
 DrawOpponent             f4c4                  
-DrawQrCode               fb24              (R )
-DrawScoreD0              f71d                  
-DrawScoreD1              f726                  
-DrawScoreD2              f733                  
-DrawScoreD3              f740                  
-DrawScoreD4              f74d                  
+DrawQrCode               fb36              (R )
+DrawScoreD0              f71b                  
+DrawScoreD1              f724                  
+DrawScoreD2              f731                  
+DrawScoreD3              f73e                  
+DrawScoreD4              f74b                  
 DrawScoreHud             f322                  
 DrawTraffic0             f4d3                  
 DrawTraffic1             f46b                  
 DrawTraffic2             f486                  
 DrawTraffic3             f4a1                  
-DrawVersionRight         f85d                  
+DrawVersionRight         f85b                  
 ENABL                    001f              (R )
 ENABLCache               0085              (R )
 ENAM0                    001d              (R )
@@ -223,33 +223,33 @@ ENAM0Cache               0086              (R )
 ENAM1                    001e              (R )
 ENAM1Cache               0087              (R )
 EndChangeTextFlickerMode f19a              (R )
-EndClearAll              f67f                  
+EndClearAll              f67d                  
 EndDrawDistance          f247                  
-EndLeftSound             f5e5              (R )
-EndLoadAll               f69c                  
-EndQrCodeLoop            fb84                  
+EndLeftSound             f5e3              (R )
+EndLoadAll               f69a                  
+EndQrCodeLoop            fb96                  
 EndRandomizeGame         f157              (R )
 EndReadSwitches          f579              (R )
-EndRightSound            f659              (R )
+EndRightSound            f657              (R )
 EndStaticText            ff2d                  
 EnemyCarIdToSpriteAddressH ffa7              (R )
 EnemyCarIdToSpriteAddressL ffa3              (R )
 EnemyCarSpritePointerH   00da              (R )
 EnemyCarSpritePointerL   00d9              (R )
 EngineBaseFrequence      ff49              (R )
-EngineOff                f5e1              (R )
+EngineOff                f5df              (R )
 EngineSoundType          ff43              (R )
 EorOffsetWithCarry       f478              (R )
 EorOffsetWithCarry2      f493              (R )
 EorOffsetWithCarry3      f4ae              (R )
-EverySecond              fafa              (R )
+EverySecond              fb0c              (R )
 Exclamation              fd9b              (R )
-FinalizeDrawGameOver     f86e              (R )
-FinishDecrementCollision f975              (R )
+FinalizeDrawGameOver     f86c              (R )
+FinishDecrementCollision f987              (R )
 FinishDrawTraffic1       f486              (R )
 FinishDrawTraffic2       f4a1              (R )
 FinishDrawTraffic3       f4bc              (R )
-FinishResetPlayerSize    f97b              (R )
+FinishResetPlayerSize    f98d              (R )
 FinishScanLoop           f4ec              (R )
 Font                     fd00              (R )
 FONT_OFFSET              0004              (R )
@@ -278,12 +278,12 @@ HMCLR                    002b              (R )
 HMM0                     0022              (R )
 HMM1                     0023              (R )
 HMOVE                    002a              (R )
-HMoveXTimes              f8a5              (R )
+HMoveXTimes              f8a3              (R )
 HMP0                     0020              (R )
 HMP1                     0021              (R )
 HPositioning             f098                  
-IncreaseCarSpeed         fa7d              (R )
-IncreaseCarSpeedLoop     fa83              (R )
+IncreaseCarSpeed         fa8f              (R )
+IncreaseCarSpeedLoop     fa95              (R )
 INITIAL_COUNTDOWN_TIME   005a              (R )
 INPT0                    0008                  
 INPT1                    0009                  
@@ -292,28 +292,29 @@ INPT3                    000b
 INPT4                    000c              (R )
 INPT5                    000d              (R )
 INTIM                    0284              (R )
-IsCheckpoint             fac7              (R )
-IsGameOver               fab4                  
+IsCheckpoint             fad9              (R )
+IsGameOver               fac6                  
+IsOpponentColliding      f93c              (R )
 IsOpponentInFront        00f4              (R )
-IsTimeOver               faed                  
-JumpSkipTimeOver         fae7              (R )
+IsTimeOver               faff                  
+JumpSkipTimeOver         faf9              (R )
 LeftScoreOn              f317              (R )
 LeftScoreOnGameOver      f339              (R )
 LeftScoreWrite           f1f3              (R )
-LeftSound                f5c2                  
-LoadAll                  f67f              (R )
-LoadCarSpritesFromIds    f8c6              (R )
-LoadForLeftScreenSprites f8b3                  
-LoadForRightScreenSprites f8be              (R )
+LeftSound                f5c0                  
+LoadAll                  f67d              (R )
+LoadCarSpritesFromIds    f8c4              (R )
+LoadForLeftScreenSprites f8b1                  
+LoadForRightScreenSprites f8bc              (R )
 macro.h                  0000 ????         (R )
 MainLoop                 f0de              (R )
-MakeDragsterTurnSlow     f986                  
+MakeDragsterTurnSlow     f998                  
 MAX_GAME_MODE            0010              (R )
-MuteRightSound           f655              (R )
+MuteRightSound           f653              (R )
 NextCheckpoint           00cd              (R )
-NextDifficulty           f69c              (R )
+NextDifficulty           f69a              (R )
 NO_ILLEGAL_OPCODES       0001              (R )
-NoCollision              f96b              (R )
+NoCollision              f97d              (R )
 NUSIZ0                   0004              (R )
 NUSIZ1                   0005              (R )
 ONE_SECOND_FRAMES        003c                  
@@ -323,7 +324,7 @@ OpAfterEorOffsetWithCarry2 f3dd              (R )
 OpAfterEorOffsetWithCarry3 f3f8              (R )
 OpbText                  ff0f              (R )
 OpCheckpointTime         00c1                  
-OpCollisionCounter       008f                  
+OpCollisionCounter       008f              (R )
 OpCountdownTimer         00b9              (R )
 OpCurrentCarId           00c8              (R )
 OpCurrentDifficulty      00c5              (R )
@@ -352,8 +353,9 @@ OpHasBorderP0            f423
 OpHasNoBorderP0          f428              (R )
 OpNextCheckpoint         00ce              (R )
 OpponentLine             00cf              (R )
-OpponentNotVisible       f932                  
-OpponentVisible          f939              (R )
+OpponentNotColliding     f94d              (R )
+OpponentNotVisible       f930                  
+OpponentVisible          f937              (R )
 OpScanLoop               f37d              (R )
 OpScoreFontColor         00ca              (R )
 OpScoreFontColorHoldChange 00cc              (R )
@@ -370,8 +372,8 @@ OpTrafficOffset1         00a4              (R )
 OpTrafficOffset2         00a8              (R )
 OpTrafficOffset3         00ac              (R )
 OpWhileScanLoop          f42e                  
-OverScanWait             f5b2              (R )
-OverScanWaitBeforeReset  f5ba              (R )
+OverScanWait             f5b0              (R )
+OverScanWaitBeforeReset  f5b8              (R )
 OverText                 ff1e              (R )
 PARALLAX_SIZE            0008                  
 PF0                      000d              (R )
@@ -381,16 +383,16 @@ PF1Cache                 0082              (R )
 PF2                      000f              (R )
 PF2Cache                 0083              (R )
 Pipe                     fda5              (R )
-PlayBeforeCheckpoint     f62a              (R )
-PlayCheckpoint           f618              (R )
-PlayColision             f609              (R )
+PlayBeforeCheckpoint     f628              (R )
+PlayCheckpoint           f616              (R )
+PlayColision             f607              (R )
 PLAYER0_COLOR            00f9              (R )
-Player0IsOpponent        f90d              (R )
+Player0IsOpponent        f90b              (R )
 Player0SpeedH            00f2              (R )
 Player0SpeedL            00f0              (R )
 Player0X                 00b6              (R )
 PLAYER1_COLOR            0096              (R )
-Player1IsOpponent        f8f8                  
+Player1IsOpponent        f8f6                  
 Player1SpeedH            00f3              (R )
 Player1SpeedL            00f1              (R )
 Player1X                 00b7              (R )
@@ -402,12 +404,12 @@ PlayerToDownMask         fc66              (R )
 PlayerToLeftMask         fc68              (R )
 PlayerToRightMask        fc6a              (R )
 PlayerToUpMask           fc64              (R )
-PlayWarnTimeEnding       f63d              (R )
+PlayWarnTimeEnding       f63b              (R )
 PrepareForTraffic        f33e                  
 PrepareMaxHMove          f0f5                  
-PrepareNextUpdateLoop    fa0a                  
+PrepareNextUpdateLoop    fa1c                  
 PrepareOverscan          f4f7              (R )
-PrepareReadXAxis         f994              (R )
+PrepareReadXAxis         f9a6              (R )
 PrintCheckpoint          f24a              (R )
 PrintCreditsLeft         f265              (R )
 PrintCreditsRight        f2d6              (R )
@@ -415,19 +417,19 @@ PrintGameMode            f267              (R )
 PrintGameOver            f2de              (R )
 PrintHellwayLeft         f25a              (R )
 PrintHellwayRight        f2cb              (R )
-PrintLastLeftDecimalDigits f79b                  
+PrintLastLeftDecimalDigits f799                  
 PrintOverText            f2e7              (R )
-PrintRightDecimalDigits  f765                  
+PrintRightDecimalDigits  f763                  
 PrintRightIntro          f2d8              (R )
-PrintScore               f709              (R )
+PrintScore               f707              (R )
 PrintStartGame           f252              (R )
-PrintStaticText          f6eb              (R )
-PrintZerosLeft           f7b4              (R )
-ProcessOpponentLine      f8f1              (R )
-ProcessPlayerStatus      fab4              (R )
-ProcessScoreFontColor    fb14              (R )
-ProcessSound             f5c2              (R )
-ProcessSpeed             fa11              (R )
+PrintStaticText          f6e9              (R )
+PrintZerosLeft           f7b2              (R )
+ProcessOpponentLine      f8ef              (R )
+ProcessPlayerStatus      fac6              (R )
+ProcessScoreFontColor    fb26              (R )
+ProcessSound             f5c0              (R )
+ProcessSpeed             fa23              (R )
 QR_CODE_BACKGROUNG       000f              (R )
 QR_CODE_COLOR            0000              (R )
 QR_CODE_LINE_HEIGHT      0007              (R )
@@ -436,31 +438,32 @@ QrCode1                  fc00              (R )
 QrCode2                  fc19              (R )
 QrCode3                  fc32              (R )
 QrCode4                  fc4b              (R )
-QrCodeLoop               fb58              (R )
-RandomDifficulty         f6cc                  
+QrCodeLoop               fb6a              (R )
+RandomDifficulty         f6ca                  
 RandomizeGame            f126                  
 ReadSwitches             f542                  
 REFP0                    000b                  
 REFP1                    000c                  
 RESBL                    0014              (R )
 ResetGameMode            f56c              (R )
-ResetMinSpeed            fa62              (R )
-ResetPlayerPosition      f97b                  
-ResetPlayerSize          f975                  
-ResetScoreFontColor      fb1e              (R )
-ResetToMaxSpeed          faa8              (R )
+ResetMinSpeed            fa74              (R )
+ResetPlayerPosition      f98d                  
+ResetPlayerSize          f987                  
+ResetScoreFontColor      fb30              (R )
+ResetToMaxSpeed          faba              (R )
 RESM0                    0012              (R )
 RESM1                    0013              (R )
 RESMP0                   0028                  
 RESMP1                   0029                  
 RESP0                    0010              (R )
 RESP1                    0011              (R )
-ReturnFromNextDifficulty f6d5              (R )
-ReturnFromProcessOpponentLine f93d              (R )
+ReturnFromNextDifficulty f6d3              (R )
+ReturnFromProcessOpponentLine f93b              (R )
+ReturnIsOpponentColliding f94f              (R )
 RightScoreOn             f30c                  
 RightScoreWrite          f274              (R )
 RightScoreWriteEnd       f2ec              (R )
-RightSound               f5e5                  
+RightSound               f5e3                  
 RSYNC                    0003                  
 ScanLoop                 f437              (R )
 SCORE_BACKGROUND_COLOR   00a0              (R )
@@ -480,44 +483,44 @@ ScoreD3                  00d3              (R )
 ScoreD4                  00d4              (R )
 ScoreFontColor           00c9              (R )
 ScoreFontColorHoldChange 00cb              (R )
-ScoreLoop                f70d              (R )
+ScoreLoop                f70b              (R )
 SCREEN_SIZE              0048              (R )
-SelectCarWithDpad        f8df              (R )
+SelectCarWithDpad        f8dd              (R )
 SelectCarWithDpadCall    f16a                  
-SelectCarWithDpadLoop    f8e1              (R )
-SetColisionSpeedL        f95e              (R )
+SelectCarWithDpadLoop    f8df              (R )
+SetColisionSpeedL        f970              (R )
 SetGameNotRunning        f086                  
 SetGameRunning           f527              (R )
 SettingTrafficOffsets    f04f                  
 SetVblankTimer           f11b              (R )
 SetVblankTimerQrCode     f119              (R )
-SkipAccelerate           fab3              (R )
-SkipAccelerateIfBreaking fa6a              (R )
-SkipBreak                fa6d              (R )
+SkipAccelerate           fac5              (R )
+SkipAccelerateIfBreaking fa7c              (R )
+SkipBreak                fa7f              (R )
 SkipClean                f047              (R )
-SkipColisionPlayer0      f590              (R )
-SkipColisionPlayer1      f5a9              (R )
+SkipColisionPlayer0      f58f              (R )
+SkipColisionPlayer1      f5a7              (R )
 SkipDrawCar              f46b              (R )
 SkipDrawOpponent         f4cf              (R )
 SkipDrawTraffic0         f4e6                  
-SkipEverySecondAction    fb06              (R )
+SkipEverySecondAction    fb18              (R )
 SkipGameSelect           f574              (R )
 SkipGameStart            f542              (R )
 SkipIncFC1               f15d              (R )
-SkipIncreaseCarSpeed     fa97                  
-SkipIsCheckpoint         faed              (R )
-SkipIsTimeOver           faf9              (R )
-SkipMoveLeft             f9a9              (R )
-SkipMoveRight            f9bb              (R )
+SkipIncreaseCarSpeed     faa9                  
+SkipIsCheckpoint         faff              (R )
+SkipIsTimeOver           fb0b              (R )
+SkipMoveLeft             f9bb              (R )
+SkipMoveRight            f9cd              (R )
 SkipReset                f554              (R )
-SkipResetPlayerPosition  f986              (R )
-SkipScoreFontColor       fb23              (R )
-SkipSetColisionSpeedL    f962              (R )
+SkipResetPlayerPosition  f998              (R )
+SkipScoreFontColor       fb35              (R )
+SkipSetColisionSpeedL    f974              (R )
 SkipUpdateLogic          f1c6              (R )
 SkipUpdateLogicJump      f17d                  
-Sleep32Lines             f898              (R )
-Sleep4Lines              f888              (R )
-Sleep8Lines              f891              (R )
+Sleep32Lines             f896              (R )
+Sleep4Lines              f886              (R )
+Sleep8Lines              f88f              (R )
 Space                    fdaf              (R )
 SpeedBar                 f217                  
 SpeedToBarLookup         fc8d              (R )
@@ -527,14 +530,14 @@ StartSWCHB               00db              (R )
 StaticText               ff00              (R )
 StoreBorderP0            f4e2              (R )
 StoreCurrentDifficulty   f079              (R )
-StoreDifficultyTime      f6c1              (R )
+StoreDifficultyTime      f6bf              (R )
 StoreGameMode            f56e              (R )
 StoreGameOverText        f2e9              (R )
-StoreHMove               f9bb              (R )
-StoreInFrontPlayer       f91f              (R )
-StoreReversedQrCode      fb3f              (R )
+StoreHMove               f9cd              (R )
+StoreInFrontPlayer       f91d              (R )
+StoreReversedQrCode      fb51              (R )
 StoreTextSize            f0f3              (R )
-Subroutines              f5c2                  
+Subroutines              f5c0                  
 SWACNT                   0281                  
 SWBCNT                   0283                  
 SWCHA                    0280              (R )
@@ -545,7 +548,7 @@ T1024T                   0297
 TachometerGearLookup     ff3d                  
 TachometerSizeLookup1    ff2d                  
 TachometerSizeLookup2    ff35                  
-TestCollisionAndMove     f93e              (R )
+TestCollisionAndMove     f950              (R )
 TestIsGameRunning        f166              (R )
 TextFlickerMode          00df              (R )
 TextSide                 00de              (R )
@@ -587,9 +590,9 @@ TrafficSpeeds            ff87              (R )
 TrafficSpeedsHighDelta   ff91              (R )
 TrafficTimeTable         ffc9              (R )
 Triangle                 fdaa              (R )
-UpdateOffsets            f9be              (R )
-UpdateOffsetsLoop        f9c8              (R )
-UseNextDifficultyTime    f6c0              (R )
+UpdateOffsets            f9d0              (R )
+UpdateOffsetsLoop        f9da              (R )
+UseNextDifficultyTime    f6be              (R )
 VBLANK                   0001              (R )
 VBLANK_TIMER             0029              (R )
 VBLANK_TIMER_QR_CODE     001a              (R )
@@ -603,7 +606,7 @@ VERSION_VCS              006a
 VersionText              ff28              (R )
 VSYNC                    0000              (R )
 WaitAnotherScoreLine     f33c              (R )
-WaitForVblankEnd         f87e              (R )
+WaitForVblankEnd         f87c              (R )
 WaitResetToEnd           f0d9              (R )
 WARN_TIME_ENDING         000a              (R )
 WhileScanLoop            f4e6                  

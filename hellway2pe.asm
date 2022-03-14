@@ -1194,8 +1194,7 @@ CallTestColisionAndMove
     LDA FrameCount0
     AND #%00000001
     BNE SkipColisionPlayer0 ; Test colision after draw frame
-    LDA CXPPMM
-    AND IsOpponentInFront
+    JSR IsOpponentColliding
     ORA CXM1P
     LSR 
 	ORA CXM0P
@@ -1210,8 +1209,7 @@ SkipColisionPlayer0 ; Should not colide on opponent side.
     LDA FrameCount0
     AND #%00000001
     BEQ SkipColisionPlayer1 ; Test colision after draw frame
-    LDA CXPPMM
-    AND IsOpponentInFront
+    JSR IsOpponentColliding
     ORA CXM0P
     LSR 
 	ORA CXM1P
@@ -1824,6 +1822,23 @@ OpponentVisible
     STA OpponentLine
 ReturnFromProcessOpponentLine
     RTS
+
+; Value stored in A
+IsOpponentColliding
+    ;Any non default state, opponent do not colide
+    LDA CollisionCounter
+    ORA OpCollisionCounter
+    ORA ScoreFontColorHoldChange
+    ORA OpScoreFontColorHoldChange
+    BNE OpponentNotColliding
+    LDA IsOpponentInFront
+    AND CXPPMM
+    JMP ReturnIsOpponentColliding
+OpponentNotColliding
+    LDA #0
+ReturnIsOpponentColliding
+    RTS
+
 
 ; Movement and colision are binded because the car must be moved after duplicate size.
 ; Use X for the player
