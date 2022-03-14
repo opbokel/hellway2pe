@@ -191,6 +191,8 @@ Player1SpeedL = $F1
 Player0SpeedH = $F2
 Player1SpeedH = $F3
 
+IsOpponentInFront = $F4 ; Bit 7 tells if negative or positive.
+
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
 	LDY #0
@@ -1192,7 +1194,9 @@ CallTestColisionAndMove
     LDA FrameCount0
     AND #%00000001
     BNE SkipColisionPlayer0 ; Test colision after draw frame
-    LDA CXM1P
+    LDA CXPPMM
+    AND IsOpponentInFront
+    ORA CXM1P
     LSR 
 	ORA CXM0P
 	ORA CXP0FB
@@ -1206,7 +1210,9 @@ SkipColisionPlayer0 ; Should not colide on opponent side.
     LDA FrameCount0
     AND #%00000001
     BEQ SkipColisionPlayer1 ; Test colision after draw frame
-    LDA CXM0P
+    LDA CXPPMM
+    AND IsOpponentInFront
+    ORA CXM0P
     LSR 
 	ORA CXM1P
 	ORA CXP1FB
@@ -1784,7 +1790,7 @@ Player1IsOpponent ; Code could be reused?
     LDA Traffic0Msb
     SBC OpTraffic0Msb
     STA Tmp2
-    JMP AddOffsetToOpponentLine
+    JMP StoreInFrontPlayer
 Player0IsOpponent
     LDA OpTrafficOffset0 + 1
     SBC TrafficOffset0 + 1
@@ -1795,7 +1801,10 @@ Player0IsOpponent
     LDA OpTraffic0Msb
     SBC Traffic0Msb
     STA Tmp2
-    
+
+StoreInFrontPlayer
+    STA IsOpponentInFront
+
 AddOffsetToOpponentLine
     CLC
     LDA Tmp0
@@ -1819,7 +1828,6 @@ ReturnFromProcessOpponentLine
 ; Movement and colision are binded because the car must be moved after duplicate size.
 ; Use X for the player
 ; Tmp2 Traffic colision result
-; Tmp3 Opponent Colision result (Not implemented)
 TestCollisionAndMove
 ; Until store the movemnt, Y contains the value to be stored.
 ; see if player0 colides with the rest
@@ -1832,8 +1840,8 @@ TestCollisionAndMove
 	BEQ NoCollision
 	CMP #SCORE_FONT_COLOR_START
 	BEQ NoCollision
-	LDA #COLLISION_FRAMES	;must be a hit! Change rand color bg
-	STA CollisionCounter,X	;and store as colision.
+	LDA #COLLISION_FRAMES
+	STA CollisionCounter,X
 	LDA Player0SpeedH,X
 	BNE SetColisionSpeedL ; Never skips setting colision speed if high byte > 0
 	LDA #COLLISION_SPEED_L
