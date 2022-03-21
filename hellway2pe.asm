@@ -548,13 +548,16 @@ LeftScoreWrite
 WriteDistance ;Not optimized yet, ugly code.
 Digit0Timer
 	LDA CountdownTimer ;3
+    STA Tmp0
+    JSR BINBCD8
+    ; LDA Tmp1 Also returned in A
 	AND #%00001111 ;2
 	TAX ; 2
 	LDA FontLookup,X ;4 
 	STA ScoreD1 ;3
 
 Digit1Timer
-	LDA CountdownTimer ;3
+	LDA Tmp1 ;3 ; Converted to BCD in digit 0
 	LSR ; 2
 	LSR ; 2
 	LSR ; 2
@@ -637,14 +640,17 @@ RightScoreWrite
 	BEQ PrintGameOver
     
 OpDigit0Timer
-	LDA OpCountdownTimer ;3
+    LDA OpCountdownTimer ;3
+    STA Tmp0
+    JSR BINBCD8
+    ; LDA Tmp1 Also returned in A
 	AND #%00001111 ;2
 	TAX ; 2
 	LDA FontLookup,X ;4 
 	STA ScoreD4 ;3
 
 OpDigit1Timer
-	LDA OpCountdownTimer ;3
+	LDA Tmp1 ;3
 	LSR ; 2
 	LSR ; 2
 	LSR ; 2
@@ -1762,6 +1768,32 @@ ConfigureOpponentCarSprite
 	LDA EnemyCarIdToSpriteAddressH,Y
 	STA EnemyCarSpritePointerH
     RTS
+
+; From http://www.6502.org/source/integers/hex2dec-more.htm
+; Can be transformed into a 100 bytes lookup table if cycles are scarse...
+; Tmp0 Binary Number
+; Result Returned in Tmp 1 and A
+BINBCD8:	
+    SED		; Switch to decimal mode
+	LDA #0		; Ensure the result is clear
+	STA Tmp1+0
+	;STA Tmp1+1
+	LDX #8		; The number of source bits
+
+CNVBIT:		
+    ASL Tmp0 ;BIN		; Shift out one bit
+	LDA Tmp1+0	; And add into result
+	ADC Tmp1+0
+	STA Tmp1+0
+    ;Not needed now, 0 to 99 is enought for timer!
+	; LDA Tmp1+1	; propagating any carry
+	; ADC Tmp1+1
+	; STA Tmp1+1
+	DEX		; And repeat for next bit
+	BNE CNVBIT
+	CLD		; Back to binary
+
+	RTS		; All Done.
 
 ;Tmp0 Current SWCHA mask, will be right shifted 4 times
 ;X player 0 or 1
