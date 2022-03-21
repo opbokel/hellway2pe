@@ -99,6 +99,8 @@ CURRENT_CAR_MASK = %00000011; 4 cars
 VBLANK_TIMER = 41
 ;Almost no game processing with QR code. This gives bleading space by reducing vblank (Still acceptable limits)
 VBLANK_TIMER_QR_CODE = 26 ; 22 lines 
+
+ENGINE_VOLUME = 9
 	
 GRP0Cache = $80
 PF0Cache = $81
@@ -519,6 +521,13 @@ CallProcessPlayerSprites
     JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
 CallProcessSound
+    LDX #0
+    LDA TrafficOffset0 + 2
+    STA Tmp1
+    JSR ProcessSound
+    INX ; Player 1
+    LDA OpTrafficOffset0 + 2
+    STA Tmp1
     JSR ProcessSound
 
 ;Could be done during on vblank to save this comparisson time (before draw score), 
@@ -1135,8 +1144,6 @@ SetGameRunning
 	LDA #0;
 	STA FrameCount0
 	STA FrameCount1
-	LDA #10
-	STA AUDV0
 	LDA #SCORE_FONT_COLOR_START
 	STA ScoreFontColor
     STA OpScoreFontColor
@@ -1234,92 +1241,97 @@ OverScanWaitBeforeReset
 
 Subroutines
 
+;X Player
+;Tmp1 TrafficOffset 2
 ProcessSound
 SoundEffects ; 71 More speed = smaller frequency divider. Just getting speed used MSB. (0 to 23)
-	LDA ScoreFontColor ;3
+	LDA ScoreFontColor,X ;3
 	CMP #SCORE_FONT_COLOR_OVER ;2
 	BEQ EngineSound ;2 A little bit of silence, since you will be run over all the time
 	CMP #SCORE_FONT_COLOR_GOOD ;2
 	BEQ PlayCheckpoint ;2
-	LDA CollisionCounter ;3
+	LDA CollisionCounter,X ;3
 	CMP #$E0 ;2
 	BCS PlayColision ;2
-	LDA NextCheckpoint ;3
+	LDA NextCheckpoint,X ;3
 	SEC ;2
-	SBC TrafficOffset0 + 2 ;3
+	SBC Tmp1;TrafficOffset0 + 2 ;3
 	CMP #$02 ;2
 	BCC PlayBeforeCheckpoint ;4
-	LDA CountdownTimer ; 3
+	LDA CountdownTimer,X ; 3
 	BEQ EngineSound ;2
 	CMP #WARN_TIME_ENDING ;2
 	BCC PlayWarnTimeEnding ;4
 	JMP EngineSound ;3
 PlayColision
 	LDA #31
-	STA AUDF0
+	STA AUDF0,X
 	LDA #8
-	STA AUDC0
+	STA AUDC0,X
 	LDA #8
-	STA AUDV0
+	STA AUDV0,X
 	JMP EndSound
 
 PlayCheckpoint
-	LDA ScoreFontColorHoldChange ;3
+	LDA ScoreFontColorHoldChange,X ;3
 	LSR ;2
 	LSR ;2
 	LSR ;2
-	STA AUDF0 ;3
+	STA AUDF0,X ;3
 	LDA #12 ;2
-	STA AUDC0 ;3
+	STA AUDC0,X ;3
 	LDA #6 ;2
-	STA AUDV0 ;3
+	STA AUDV0,X ;3
 	JMP EndSound ;3
 
 PlayBeforeCheckpoint
 	LDA FrameCount0 ;3
 	AND #%00011100 ;2
 	ORA #%00000011;2
-	STA AUDF0 ;3
+	STA AUDF0,X ;3
 	LDA #12 ;2
-	STA AUDC0 ;3
+	STA AUDC0,X ;3
 	LDA #3 ;2
-	STA AUDV0 ;3
+	STA AUDV0,X ;3
 	JMP EndSound ;3
 
 PlayWarnTimeEnding
 	LDA FrameCount0 ;3
 	AND #%00000100 ;2
-	BEQ EngineSound ;2 Bip at regular intervals
+	BEQ MuteSound ;2 Bip at regular intervals
 	CLC ;2
 	LDA #10 ;2
-	ADC CountdownTimer ;2
-	STA AUDF0 ;3
+	ADC CountdownTimer,X ;2
+	STA AUDF0,X ;3
 	LDA #12 ;2
-	STA AUDC0 ;3
+	STA AUDC0,X ;3
 	LDA #3 ;2
-	STA AUDV0 ;3
+	STA AUDV0,X ;3
 	JMP EndSound ;3
 
 EngineSound ;41
-	LDA CountdownTimer ;3
+    LDA #ENGINE_VOLUME ;It needs to restore volume now, since it is a shared audio channel
+	STA AUDV0,X
+	LDA CountdownTimer,X ;3
 	BEQ EngineOff      ;2
-	LDX Gear
-	LDA Player0SpeedL ;3
+	LDY Gear,X
+	LDA Player0SpeedL,X ;3
 	LSR ;2
 	LSR ;2
 	LSR ;2
 	AND #%00001111 ;2
 	STA Tmp0 ;3
-	LDA EngineBaseFrequence,X ; 4 Max of 5 bits
+	LDA EngineBaseFrequence,Y ; 4 Max of 5 bits
 	SEC ;2
 	SBC Tmp0 ;3
-	STA AUDF0 ;3
-	LDA EngineSoundType,X ;4
-	STA AUDC0 ;3
+	STA AUDF0,X ;3
+	LDA EngineSoundType,Y ;4
+	STA AUDC0,X ;3
 	JMP EndEngineSound ;3
 EngineOff
+MuteSound
 	LDA #0
-	STA AUDC0
+	STA AUDC0,X
 EndEngineSound
 EndSound
     RTS
