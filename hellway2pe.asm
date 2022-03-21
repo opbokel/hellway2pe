@@ -1804,8 +1804,10 @@ AddOffsetToOpponentLine
     STA Tmp0
     LDA Tmp1
     ADC #0
+    STA Tmp1 ; Needed to test with the result in A
     LDA Tmp2
     ADC #0
+    ORA Tmp1
     BEQ OpponentVisible ; Less than 128 diff.
 OpponentNotVisible
     LDA #$FF ; For now, just removing from screen
