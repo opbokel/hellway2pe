@@ -585,12 +585,20 @@ SpeedBar
 	STA ScoreD2 ;3
 
 DistanceCheckpointCount ; Will run all letters in the future
+    LDA Traffic0Msb
+    AND #%00000001
+    ASL
+    ASL
+    ASL
+    ASL
+    STA Tmp0
     LDA TrafficOffset0 + 2 ;3
 	AND #%11110000 ;2
     LSR
     LSR
     LSR
     LSR
+    ORA Tmp0
 	TAX ; 2
 	LDA FontLookup,X ;4 
 	STA ScoreD3 ;3
@@ -677,13 +685,21 @@ OpSpeedBar
 	LDA SpeedToBarLookup,X ;4
 	STA ScoreD2 ;3
 
-OpDistanceCheckpointCount ; Will run all letters in the future
+OpDistanceCheckpointCount
+    LDA OpTraffic0Msb
+    AND #%00000001
+    ASL
+    ASL
+    ASL
+    ASL
+    STA Tmp0
     LDA OpTrafficOffset0 + 2 ;3
 	AND #%11110000 ;2
     LSR
     LSR
     LSR
     LSR
+    ORA Tmp0
 	TAX ; 2
 	LDA FontLookup,X ;4 
 	STA ScoreD1 ;3
@@ -2398,7 +2414,6 @@ PlayerToDownMask
     .byte #%00100000;
     .byte #%00000010;
 
-
 PlayerToLeftMask
     .byte #%01000000;
     .byte #%00000100;
@@ -2408,14 +2423,14 @@ PlayerToRightMask
     .byte #%00001000;
 
 FontLookup ; Very fast font lookup for dynamic values!
-	.byte #<C0 + #FONT_OFFSET
+	.byte #<C0 + #FONT_OFFSET ; 0
 	.byte #<C1 + #FONT_OFFSET
 	.byte #<C2 + #FONT_OFFSET
 	.byte #<C3 + #FONT_OFFSET
 	.byte #<C4 + #FONT_OFFSET
 	.byte #<C5 + #FONT_OFFSET 
 	.byte #<C6 + #FONT_OFFSET
-	.byte #<C7 + #FONT_OFFSET
+	.byte #<C7 + #FONT_OFFSET ; 8
 	.byte #<C8 + #FONT_OFFSET 
 	.byte #<C9 + #FONT_OFFSET
 	.byte #<CA + #FONT_OFFSET 
@@ -2423,8 +2438,24 @@ FontLookup ; Very fast font lookup for dynamic values!
 	.byte #<CC + #FONT_OFFSET
 	.byte #<CD + #FONT_OFFSET
 	.byte #<CE + #FONT_OFFSET
-	.byte #<CF + #FONT_OFFSET
+	.byte #<CF + #FONT_OFFSET ; 16
 	.byte #<CG + #FONT_OFFSET
+    .byte #<CH + #FONT_OFFSET
+    .byte #<CI + #FONT_OFFSET
+    .byte #<CJ + #FONT_OFFSET
+    .byte #<CK + #FONT_OFFSET
+    .byte #<CL + #FONT_OFFSET
+    .byte #<CM + #FONT_OFFSET
+    .byte #<CN + #FONT_OFFSET ; 24
+    .byte #<CO + #FONT_OFFSET
+    .byte #<CP + #FONT_OFFSET
+    .byte #<CR + #FONT_OFFSET ; Last point that is continuos
+    .byte #<CT + #FONT_OFFSET
+    .byte #<CV + #FONT_OFFSET
+    .byte #<CW + #FONT_OFFSET
+    .byte #<CY + #FONT_OFFSET
+    .byte #<Exclamation + #FONT_OFFSET ; 32
+
 
 BarLookup ; Very fast font lookup for dynamic values (vertical bar)!
 	.byte #<C0B + #FONT_OFFSET
@@ -2587,6 +2618,20 @@ CH
 	.byte #%10100101; 
 	.byte #%10100101;
 
+CI
+	.byte #%11100111;
+	.byte #%01000010; 
+	.byte #%01000010; 
+	.byte #%01000010; 
+	.byte #%11100111;
+
+CJ
+	.byte #%11100111;
+	.byte #%10100101; 
+	.byte #%10000001; 
+	.byte #%10000001; 
+	.byte #%10000001;	
+
 CK
 	.byte #%10100101;
 	.byte #%10100101; 
@@ -2637,13 +2682,6 @@ CR
 	.byte #%10100101; 
 	.byte #%01100110;
 
-CS
-	.byte #%01100110;
-	.byte #%10000001; 
-	.byte #%01000010; 
-	.byte #%00100100; 
-	.byte #%11000011;
-
 CT 
 	.byte #%01000010;
 	.byte #%01000010; 
@@ -2658,13 +2696,6 @@ CV
 	.byte #%10100101; 
 	.byte #%10100101;	
 
-CY
-	.byte #%01000010;
-	.byte #%01000010; 
-	.byte #%01000010; 
-	.byte #%10100101; 
-	.byte #%10100101;
-
 CW 
 	.byte #%10100101;
 	.byte #%11100111; 
@@ -2672,13 +2703,12 @@ CW
 	.byte #%10100101; 
 	.byte #%10100101;
 
-CZ 
-	.byte #%11100111;
-	.byte #%00100100; 
+CY
+	.byte #%01000010;
 	.byte #%01000010; 
-	.byte #%10000001; 
-	.byte #%11100111;
-
+	.byte #%01000010; 
+	.byte #%10100101; 
+	.byte #%10100101;
 
 Exclamation
 	.byte #%01000010;
