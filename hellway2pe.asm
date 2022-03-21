@@ -1235,7 +1235,72 @@ OverScanWaitBeforeReset
 Subroutines
 
 ProcessSound
-LeftSound ;41
+SoundEffects ; 71 More speed = smaller frequency divider. Just getting speed used MSB. (0 to 23)
+	LDA ScoreFontColor ;3
+	CMP #SCORE_FONT_COLOR_OVER ;2
+	BEQ EngineSound ;2 A little bit of silence, since you will be run over all the time
+	CMP #SCORE_FONT_COLOR_GOOD ;2
+	BEQ PlayCheckpoint ;2
+	LDA CollisionCounter ;3
+	CMP #$E0 ;2
+	BCS PlayColision ;2
+	LDA NextCheckpoint ;3
+	SEC ;2
+	SBC TrafficOffset0 + 2 ;3
+	CMP #$02 ;2
+	BCC PlayBeforeCheckpoint ;4
+	LDA CountdownTimer ; 3
+	BEQ EngineSound ;2
+	CMP #WARN_TIME_ENDING ;2
+	BCC PlayWarnTimeEnding ;4
+	JMP EngineSound ;3
+PlayColision
+	LDA #31
+	STA AUDF0
+	LDA #8
+	STA AUDC0
+	LDA #8
+	STA AUDV0
+	JMP EndSound
+
+PlayCheckpoint
+	LDA ScoreFontColorHoldChange ;3
+	LSR ;2
+	LSR ;2
+	LSR ;2
+	STA AUDF0 ;3
+	LDA #12 ;2
+	STA AUDC0 ;3
+	LDA #6 ;2
+	STA AUDV0 ;3
+	JMP EndSound ;3
+
+PlayBeforeCheckpoint
+	LDA FrameCount0 ;3
+	AND #%00011100 ;2
+	ORA #%00000011;2
+	STA AUDF0 ;3
+	LDA #12 ;2
+	STA AUDC0 ;3
+	LDA #3 ;2
+	STA AUDV0 ;3
+	JMP EndSound ;3
+
+PlayWarnTimeEnding
+	LDA FrameCount0 ;3
+	AND #%00000100 ;2
+	BEQ EngineSound ;2 Bip at regular intervals
+	CLC ;2
+	LDA #10 ;2
+	ADC CountdownTimer ;2
+	STA AUDF0 ;3
+	LDA #12 ;2
+	STA AUDC0 ;3
+	LDA #3 ;2
+	STA AUDV0 ;3
+	JMP EndSound ;3
+
+EngineSound ;41
 	LDA CountdownTimer ;3
 	BEQ EngineOff      ;2
 	LDX Gear
@@ -1251,83 +1316,12 @@ LeftSound ;41
 	STA AUDF0 ;3
 	LDA EngineSoundType,X ;4
 	STA AUDC0 ;3
-	JMP EndLeftSound ;3
+	JMP EndEngineSound ;3
 EngineOff
 	LDA #0
 	STA AUDC0
-
-EndLeftSound
-
-
-RightSound ; 71 More speed = smaller frequency divider. Just getting speed used MSB. (0 to 23)
-	LDA ScoreFontColor ;3
-	CMP #SCORE_FONT_COLOR_OVER ;2
-	BEQ MuteRightSound ;2 A little bit of silence, since you will be run over all the time
-	CMP #SCORE_FONT_COLOR_GOOD ;2
-	BEQ PlayCheckpoint ;2
-	LDA CollisionCounter ;3
-	CMP #$E0 ;2
-	BCS PlayColision ;2
-	LDA NextCheckpoint ;3
-	SEC ;2
-	SBC TrafficOffset0 + 2 ;3
-	CMP #$02 ;2
-	BCC PlayBeforeCheckpoint ;4
-	LDA CountdownTimer ; 3
-	BEQ MuteRightSound ;2
-	CMP #WARN_TIME_ENDING ;2
-	BCC PlayWarnTimeEnding ;4
-	JMP MuteRightSound ;3
-PlayColision
-	LDA #31
-	STA AUDF1
-	LDA #8
-	STA AUDC1
-	LDA #8
-	STA AUDV1
-	JMP EndRightSound
-
-PlayCheckpoint
-	LDA ScoreFontColorHoldChange ;3
-	LSR ;2
-	LSR ;2
-	LSR ;2
-	STA AUDF1 ;3
-	LDA #12 ;2
-	STA AUDC1 ;3
-	LDA #6 ;2
-	STA AUDV1 ;3
-	JMP EndRightSound ;3
-
-PlayBeforeCheckpoint
-	LDA FrameCount0 ;3
-	AND #%00011100 ;2
-	ORA #%00000011;2
-	STA AUDF1 ;3
-	LDA #12 ;2
-	STA AUDC1 ;3
-	LDA #3 ;2
-	STA AUDV1 ;3
-	JMP EndRightSound ;3
-
-PlayWarnTimeEnding
-	LDA FrameCount0 ;3
-	AND #%00000100 ;2
-	BEQ MuteRightSound ;2 Bip at regular intervals
-	CLC ;2
-	LDA #10 ;2
-	ADC CountdownTimer ;2
-	STA AUDF1 ;3
-	LDA #12 ;2
-	STA AUDC1 ;3
-	LDA #3 ;2
-	STA AUDV1 ;3
-	JMP EndRightSound ;3
-	
-MuteRightSound
-	LDA #0
-	STA AUDV1
-EndRightSound
+EndEngineSound
+EndSound
     RTS
 
 ClearAll ; 58
