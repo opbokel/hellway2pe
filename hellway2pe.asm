@@ -624,6 +624,13 @@ PrintStartGame
 	JMP RightScoreWriteEnd;3
 
 PrintHellwayLeft
+    LDA INPT4 ; Joystick is pressed, show ready!
+    BMI ContinueWithDefaultLeftText
+Player0IsReady
+    LDX #<ReadyText
+    JSR PrintStaticText
+    JMP RightScoreWriteEnd;3
+ContinueWithDefaultLeftText
 	LDA FrameCount1
 	AND #1
 	BNE PrintCreditsLeft
@@ -714,6 +721,13 @@ OpDistanceBar ; 16 subdivisions per checkpoint
     JMP RightScoreWriteEnd
 
 PrintHellwayRight
+    LDA INPT5 ; Joystick is pressed, show ready!
+    BMI ContinueWithDefaultRightText
+Player1IsReady
+    LDX #<ReadyText
+    JSR PrintStaticText
+    JMP RightScoreWriteEnd;3
+ContinueWithDefaultRightText
 	LDA FrameCount1
 	AND #1
 	BNE PrintCreditsRight
@@ -1135,8 +1149,8 @@ PrepareOverscan
     STA HMCLR ; Before we process car movement
 ;Read Fire Button before, will make it start the game for now.
 StartGame
-	LDA INPT4 ;3
-    AND INPT5 ;3 player 
+	LDA INPT4 ;3 Any player has to press start
+    AND INPT5 ;3 player 1
 	BMI SkipGameStart ;2 ;not pressed the fire button in negative in bit 7
     LDA FrameCount0
     AND #%00000001
@@ -1146,12 +1160,16 @@ StartGame
 	BNE SkipGameStart
 	LDA GameMode
 	CMP #MAX_GAME_MODE
-	BNE SetGameRunning
+	BNE SetGameRunningIfBothPressing
 	LDA #0
 	STA GameMode
 	LDA #SWITCHES_DEBOUNCE_TIME
 	STA SwitchDebounceCounter
 	JMP SkipGameStart
+SetGameRunningIfBothPressing
+    LDA INPT4 ;3 Both player have to press start
+    ORA INPT5 ;3 player 1
+    BMI SkipGameStart
 SetGameRunning 
 	INC GameStatus
 	LDA #0;
@@ -2287,11 +2305,11 @@ FontLookup ; Very fast font lookup for dynamic values!
     .byte #<CN + #FONT_OFFSET ; 24
     .byte #<CO + #FONT_OFFSET
     .byte #<CP + #FONT_OFFSET
-    .byte #<CR + #FONT_OFFSET ; Last point that is continuos
+    .byte #<CQ + #FONT_OFFSET 
+    .byte #<CR + #FONT_OFFSET
+    .byte #<CS + #FONT_OFFSET
     .byte #<CT + #FONT_OFFSET
-    .byte #<CV + #FONT_OFFSET
-    .byte #<CW + #FONT_OFFSET
-    .byte #<CY + #FONT_OFFSET
+    .byte #<CV + #FONT_OFFSET ; If game over text is gone, we can replace the v for u!
     .byte #<Exclamation + #FONT_OFFSET ; 32
 
 
@@ -2513,12 +2531,26 @@ CP
 	.byte #%10100101; 
 	.byte #%11100111;
 
+CQ
+    .byte #%10000001;
+	.byte #%11100101; 
+	.byte #%10100101; 
+	.byte #%10100101; 
+	.byte #%11100111;	
+
 CR
 	.byte #%10100101;
 	.byte #%10100101; 
 	.byte #%01100110; 
 	.byte #%10100101; 
 	.byte #%01100110;
+
+CS
+	.byte #%01100110;
+	.byte #%10000001; 
+	.byte #%01000010; 
+	.byte #%00100100; 
+	.byte #%11000011;
 
 CT 
 	.byte #%01000010;
@@ -2555,13 +2587,6 @@ Exclamation
 	.byte #%01000010; 
 	.byte #%01000010;
 
-Dot
-	.byte #%01000010;
-	.byte #%01000010; 
-	.byte #%00000000; 
-	.byte #%00000000; 
-	.byte #%00000000;
-
 Pipe
 Colon
 	.byte #%01000010;
@@ -2569,13 +2594,6 @@ Colon
 	.byte #%00000000; 
 	.byte #%01000010; 
 	.byte #%01000010;
-
-Triangle
-	.byte #%10000001;
-	.byte #%11000011; 
-	.byte #%11100111; 
-	.byte #%11000011; 
-	.byte #%10000001;
 
 Space
 C0B
@@ -2696,9 +2714,8 @@ AesTable
 	DC.B $70,$3e,$b5,$66,$48,$03,$f6,$0e,$61,$35,$57,$b9,$86,$c1,$1d,$9e
 	DC.B $e1,$f8,$98,$11,$69,$d9,$8e,$94,$9b,$1e,$87,$e9,$ce,$55,$28,$df
 	DC.B $8c,$a1,$89,$0d,$bf,$e6,$42,$68,$41,$99,$2d,$0f,$b0,$54,$bb,$16
-
-; From FF00 to FFFB (122 bytes) to use here
-
+	
+    org $FF00
 StaticText ; All static text must be on the same MSB block. 
 CheckpointText; Only the LSB, which is the offset.
 	.byte #<CC + #FONT_OFFSET
@@ -2711,14 +2728,14 @@ HellwayLeftText
 	.byte #<Space + #FONT_OFFSET
 	.byte #<Pipe + #FONT_OFFSET
 	.byte #<CH + #FONT_OFFSET 
-	.byte #<CE + #FONT_OFFSET
 	.byte #<CL + #FONT_OFFSET
+	.byte #<CY + #FONT_OFFSET
 
 HellwayRightText
-	.byte #<CL + #FONT_OFFSET
-	.byte #<CW + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<CY + #FONT_OFFSET 
+	.byte #<Space + #FONT_OFFSET
+	.byte #<C2 + #FONT_OFFSET
+	.byte #<CP + #FONT_OFFSET
+	.byte #<CE + #FONT_OFFSET 
 	.byte #<Exclamation + #FONT_OFFSET
 
 OpbText
@@ -2733,7 +2750,7 @@ YearText
 	.byte #<C2 + #FONT_OFFSET
 	.byte #<C0 + #FONT_OFFSET
 	.byte #<C2 + #FONT_OFFSET 
-	.byte #<C1 + #FONT_OFFSET
+	.byte #<C2 + #FONT_OFFSET
  
 GameText
 	.byte #<CG + #FONT_OFFSET
@@ -2748,6 +2765,7 @@ OverText
 	.byte #<CE + #FONT_OFFSET
 	.byte #<CR + #FONT_OFFSET 
 	.byte #<Space + #FONT_OFFSET
+
 GoText
 	.byte #<CG + #FONT_OFFSET
 	.byte #<CO + #FONT_OFFSET
@@ -2755,12 +2773,13 @@ GoText
 	.byte #<Exclamation + #FONT_OFFSET 
 	.byte #<Exclamation + #FONT_OFFSET
 
-VersionText
-	.byte #<C0 + #FONT_OFFSET
-	.byte #<Dot + #FONT_OFFSET
-	.byte #<C5 + #FONT_OFFSET
-	.byte #<C1 + #FONT_OFFSET 
-	.byte #<Triangle + #FONT_OFFSET
+ReadyText
+    .byte #<CR + #FONT_OFFSET
+	.byte #<CE + #FONT_OFFSET
+	.byte #<CA + #FONT_OFFSET
+	.byte #<CD + #FONT_OFFSET 
+	.byte #<CY + #FONT_OFFSET
+
 EndStaticText
 
 TachometerSizeLookup1
