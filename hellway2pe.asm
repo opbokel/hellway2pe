@@ -1432,7 +1432,7 @@ CheckRandomDifficulty
 	LDA GameMode
 	AND #%00001000 ; Random difficulties
 	BEQ ReturnFromNextDifficulty
-RandomDifficulty ; need work to make 2 players compatible
+RandomDifficulty ; Might bug if both players cross at the same time, it is a feature! Very unlikelly. Solve if there is rom space left...
     LDA IsOpponentInFront
     BMI UseOpponentChance
 	LDY FrameCount0

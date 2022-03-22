@@ -2008,7 +2008,7 @@
    1432  f6e3		       a5 c6		      LDA	GameMode
    1433  f6e5		       29 08		      AND	#%00001000	; Random difficulties
    1434  f6e7		       f0 20		      BEQ	ReturnFromNextDifficulty
-   1435  f6e9				   RandomDifficulty		; need work to make 2 players compatible
+   1435  f6e9				   RandomDifficulty		; Might bug if both players cross at the same time, it is a feature!
    1436  f6e9		       a5 f4		      LDA	IsOpponentInFront
    1437  f6eb		       30 0c		      BMI	UseOpponentChance
    1438  f6ed		       a4 8c		      LDY	FrameCount0
