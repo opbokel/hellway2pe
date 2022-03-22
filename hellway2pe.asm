@@ -261,20 +261,15 @@ SettingTrafficOffsets; Time sensitive with player H position
 	LDA SWCHB ; Reading the switches and mapping to difficulty id
 	STA StartSWCHB ; For game over
 	AND #%11000000
-	BEQ CallConfigureDifficulty
+	BEQ StoreCurrentDifficulty
 	INX
 	CMP #%10000000
-	BEQ CallConfigureDifficulty
+	BEQ StoreCurrentDifficulty
 	INX
 	CMP #%01000000
-	BEQ CallConfigureDifficulty
+	BEQ StoreCurrentDifficulty
 	INX
 
-CallConfigureDifficulty
-	CPX CurrentDifficulty; Checks change on dificulty Switches
-	BNE StoreCurrentDifficulty; Do not change car
-	LDA GameStatus
-	BNE StoreCurrentDifficulty ; Do not change car for a game running reset
 StoreCurrentDifficulty
 	STX CurrentDifficulty
     STX OpCurrentDifficulty
@@ -381,7 +376,6 @@ SetVblankTimerQrCode
 
 SetVblankTimer
 	STA WSYNC ;3
-    STA HMOVE; 2/10 Check if VSYNC can suffer this delay
 	STA TIM64T ;3	
 	LDA #0 ;2
 	STA VSYNC ;3	
@@ -455,7 +449,6 @@ CallEverySecond ; Timer for now
     INX 
     JSR EverySecond
 
-
 ChangeTextFlickerMode
 	LDA SwitchDebounceCounter
 	BNE EndChangeTextFlickerMode
@@ -496,7 +489,6 @@ CallUpdateOffsets
 CallProcessOpponentLine
     JSR ProcessOpponentLine 
 
-
 SkipUpdateLogic ; Continue here if not paused
 
 CallStatusUpdateSbr
@@ -507,20 +499,27 @@ CallStatusUpdateSbr
     JSR CalculateGear
     JSR ProcessScoreFontColor
 
-CallProcessPlayerStatus
+CallProcessPlayerStatus ; Only when visible, status depends on opponent line, 1 frame max delay is ok.
+    LDA FrameCount0
+    AND #%00000001
+    BNE CallProcessPlayer1Status
+CallProcessPlayer0Status
     LDA TrafficOffset0 + 2 ; Not sequential to OpTrafficOffset0
     STA Tmp0
     LDX #0
     JSR ProcessPlayerStatus
+    JMP EndCallProcessPlayerStatus
+CallProcessPlayer1Status
     LDA OpTrafficOffset0 + 2
     STA Tmp0
-    INX
+    LDX #1
     JSR ProcessPlayerStatus
+EndCallProcessPlayerStatus
 
 CallProcessPlayerSprites
     JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
-CallProcessSound
+CallProcessSound ; We might save cycles by updating one channel per frame.
     LDX #0
     LDA TrafficOffset0 + 2
     STA Tmp1
@@ -774,22 +773,12 @@ CallWaitForVblankEnd
 DrawScoreHud
 	JSR PrintScore
 
+; 4 lines to go crazy
 	STA WSYNC
+    ;STA HMOVE
 
-	LDA INPT4 ;3
-	;BPL WaitAnotherScoreLine ; Draw traffic while button is pressed.
-    JMP WaitAnotherScoreLine ; Temporary disabling score, please enable line above!
-	LDA ScoreFontColor
-	CMP #SCORE_FONT_COLOR_OVER
-	BNE WaitAnotherScoreLine
-	LDA TextSide ;3
-	BNE LeftScoreOnGameOver
-	JMP DrawGameOverScreenRight
-LeftScoreOnGameOver
-	JMP DrawGameOverScreenLeft
-
-WaitAnotherScoreLine
 	STA WSYNC
+    STA HMOVE
 
 PrepareForTraffic
 	JSR ClearPF ; 32
@@ -1189,7 +1178,10 @@ SkipReset
 GameModeSelect
 	LDA GameStatus ;We don't read game select while running and save precious cycles
 	BNE SkipGameSelect
+    LDX #0
 	JSR ConfigureDifficulty ; Keeps randomizing dificulty for modes 8 to F, also resets it for other modes
+    INX
+    JSR ConfigureDifficulty
 ContinueGameSelect
 	LDA #%00000010
 	BIT SWCHB
@@ -1441,11 +1433,25 @@ CheckRandomDifficulty
 	AND #%00001000 ; Random difficulties
 	BEQ ReturnFromNextDifficulty
 RandomDifficulty ; need work to make 2 players compatible
+    LDA IsOpponentInFront
+    BMI UseOpponentChance
 	LDY FrameCount0
 	LDA AesTable,Y
 	;EOR TrafficChance, no need, lets make life simple
 	AND #%00111111
 	STA TrafficChance,X ; Cache winning player chance and use
+    JMP ReturnFromNextDifficulty
+UseOpponentChance
+    TXA
+    EOR #%00000001 ; Reverts the player
+    TAX
+    LDA TrafficChance,X ; Loads opponent chance
+    STA Tmp3
+    TXA 
+    EOR #%00000001 ; Restors the player
+    TAX
+    LDA Tmp3
+    STA TrafficChance,X
 	
 ReturnFromNextDifficulty
 	RTS
@@ -1547,179 +1553,6 @@ DrawScoreD4 ; 20
     STA HMOVE
 	JSR LoadAll
 	RTS ; 6
-
-PrintRightDecimalDigits
-	LDA 0,Y
-	LSR
-	LSR
-	LSR
-	LSR
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD2 ;3
-
-	LDA 0,Y
-	AND #%00001111
-	TAX 
-	LDA FontLookup,X ;4
-	STA ScoreD3 ;3
-
-	INY
-	LDA 0,Y
-	LSR
-	LSR
-	LSR
-	LSR
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD0 ;3
-
-	LDA 0,Y
-	AND #%00001111
-	TAX 
-	LDA FontLookup,X ;4
-	STA ScoreD1 ;3
-
-	LDA #<Triangle + FONT_OFFSET
-	STA ScoreD4
-	RTS
-
-PrintLastLeftDecimalDigits
-	LDA 0,Y
-	LSR
-	LSR
-	LSR
-	LSR
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD3 ;3
-	LDA 0,Y
-	AND #%00001111
-	TAX 
-	LDA FontLookup,X ;4
-	STA ScoreD4 ;3
-	RTS
-
-PrintZerosLeft
-	LDA #<C0 + FONT_OFFSET
-	STA ScoreD2
-	STA ScoreD3
-	STA ScoreD4
-	RTS
-
-DrawGameOverScoreLine
-	STA WSYNC
-	JSR PrintScore
-	STA WSYNC
-	STA WSYNC
-	JSR ClearPF
-	RTS
-
-DrawGameOverScreenLeft
-	STA WSYNC
-	JSR ClearPF
-
-DrawGlideTimerLeft
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_BAD
-	STA COLUP0
-	STA WSYNC
-	LDA #<CG + #FONT_OFFSET
-	STA ScoreD0
-	LDA #<Colon + #FONT_OFFSET
-	STA ScoreD1
-	JSR PrintZerosLeft
-	JSR DrawGameOverScoreLine
-
-DrawHitCountLeft
-	JSR Sleep8Lines
-	LDA #TRAFFIC_COLOR_INTENSE
-	STA COLUP0
-	STA WSYNC
-	LDA #<CH + #FONT_OFFSET
-	STA ScoreD0
-	LDA #<Colon + #FONT_OFFSET
-	STA ScoreD1
-	JSR PrintZerosLeft
-	JSR DrawGameOverScoreLine
-
-DrawCheckpointCountLeft
-	JSR Sleep8Lines
-	LDA #SCORE_FONT_COLOR_GOOD
-	STA COLUP0
-	STA WSYNC
-	LDA #<CC + #FONT_OFFSET
-	STA ScoreD0
-	LDA #<Colon + #FONT_OFFSET
-	STA ScoreD1
-	JSR PrintZerosLeft
-	JSR DrawGameOverScoreLine
-
-DrawGameVersionLeft
-	JSR Sleep8Lines
-	LDA #VERSION_COLOR
-	STA COLUP0
-
-	LDA GameMode
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD0 ;3
-
-	LDA CurrentCarId
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD1 ;3
-
-	LDA StartSWCHB
-	AND #%01000000 ; P0 difficulty
-	EOR #%01000000 ; Reverse bytes
-	ROL
-	ROL
-	ROL 
-	CLC
-	ADC #10
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD2 ;3
-
-	LDA StartSWCHB
-	AND #%10000000 ; P0 difficulty
-	EOR #%10000000 ; Reverse bytes
-	ROL
-	ROL
-	CLC
-	ADC #10
-	TAX
-	LDA FontLookup,X ;4
-	STA ScoreD3 ;3
-
-	LDA #<Pipe + FONT_OFFSET
-	STA ScoreD4
-
-	JSR DrawGameOverScoreLine
-	
-	JMP FinalizeDrawGameOver
-
-DrawGameOverScreenRight
-	STA WSYNC
-	JSR ClearPF
-
-DrawVersionRight
-	JSR Sleep8Lines
-	LDA #VERSION_COLOR
-	STA COLUP1
-	STA WSYNC
-	LDX #<VersionText
-	JSR PrintStaticText
-	JSR DrawGameOverScoreLine
-
-FinalizeDrawGameOver
-	LDA #SCORE_FONT_COLOR_OVER ;Restores the game state
-	STA ScoreFontColor
-	JSR Sleep4Lines
-	JSR Sleep32Lines
-	JSR Sleep32Lines
-	JMP PrepareOverscan
 
 WaitForVblankEnd
 	LDA INTIM	
@@ -2260,7 +2093,7 @@ StoreReversedQrCode
 	STY COLUBK
 
 ContinueQrCode
-    LDX #8
+    LDX #9
     JSR HMoveXTimes
 	LDY #QR_CODE_SIZE - 1
 	LDX #QR_CODE_LINE_HEIGHT
