@@ -101,6 +101,8 @@ VBLANK_TIMER = 41
 VBLANK_TIMER_QR_CODE = 26 ; 22 lines 
 
 ENGINE_VOLUME = 9
+
+CAR_SIZE = 8
 	
 GRP0Cache = $80
 PF0Cache = $81
@@ -1435,6 +1437,9 @@ CheckRandomDifficulty
 RandomDifficulty ; Might bug if both players cross at the same time, it is a feature! Very unlikelly. Solve if there is rom space left...
     LDA IsOpponentInFront
     BMI UseOpponentChance
+    LDA OpponentLine ; Same line
+    CMP #(GAMEPLAY_AREA - CAR_SIZE)
+    BEQ ReturnFromNextDifficulty ; Special case, just use the default level difficulty.
 	LDY FrameCount0
 	LDA AesTable,Y
 	;EOR TrafficChance, no need, lets make life simple
@@ -1693,7 +1698,7 @@ StoreInFrontPlayer
 AddOffsetToOpponentLine
     CLC
     LDA Tmp0
-    ADC #(GAMEPLAY_AREA - 8) ; I need to investigate why 8 is the correct number...
+    ADC #(GAMEPLAY_AREA - CAR_SIZE)
     STA Tmp0
     LDA Tmp1
     ADC #0
