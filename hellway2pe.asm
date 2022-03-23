@@ -100,7 +100,7 @@ VBLANK_TIMER = 41
 ;Almost no game processing with QR code. This gives bleading space by reducing vblank (Still acceptable limits)
 VBLANK_TIMER_QR_CODE = 26 ; 22 lines 
 
-ENGINE_VOLUME = 9
+ENGINE_VOLUME = 8
 
 CAR_SIZE = 8
 	
@@ -544,9 +544,11 @@ LeftScoreWrite
 	BEQ PrintCheckpoint
 	CMP #SCORE_FONT_COLOR_START
 	BEQ PrintStartGame
+    CMP #SCORE_FONT_COLOR_OVER
+	BEQ ProcessPlayer0OverText
 	LDA GameStatus
 	BEQ PrintHellwayLeft
-WriteDistance ;Not optimized yet, ugly code.
+
 Digit0Timer
 	LDA CountdownTimer ;3
     STA Tmp0
@@ -584,6 +586,18 @@ SpeedBar
 	TAX ; 2
 	LDA SpeedToBarLookup,X ;4
 	STA ScoreD2 ;3
+    JMP DistanceCheckpointCount
+
+ProcessPlayer0OverText
+    LDA IsOpponentInFront
+    BMI PrintPlayer0Lose
+PrintPlayer0Win
+    LDX #<WinText
+    JMP PrintPlayer0Status
+PrintPlayer0Lose
+    LDX #<LoseText
+PrintPlayer0Status
+    JSR PrintStaticText
 
 DistanceCheckpointCount ; Will run all letters in the future
     LDA Traffic0Msb
@@ -634,10 +648,10 @@ ContinueWithDefaultLeftText
 	LDA FrameCount1
 	AND #1
 	BNE PrintCreditsLeft
-	LDX #<HellwayLeftText
+	LDX #<HellwayLeftText - 1 ; Padding
 	JMP PrintGameMode
 PrintCreditsLeft
-	LDX #<OpbText
+	LDX #<OpbText - 1 ; Padding
 
 PrintGameMode
 	JSR PrintStaticText
@@ -654,6 +668,8 @@ RightScoreWrite
 	BEQ PrintCheckpoint
     CMP #SCORE_FONT_COLOR_START
 	BEQ PrintStartGame
+    CMP #SCORE_FONT_COLOR_OVER
+	BEQ ProcessPlayer1OverText
     
 OpDigit0Timer
     LDA OpCountdownTimer ;3
@@ -692,6 +708,18 @@ OpSpeedBar
 	TAX ; 2
 	LDA SpeedToBarLookup,X ;4
 	STA ScoreD2 ;3
+    JMP OpDistanceCheckpointCount
+
+ProcessPlayer1OverText
+    LDA IsOpponentInFront
+    BMI PrintPlayer1Lose
+PrintPlayer1Win
+    LDX #<WinText - 2
+    JMP OpDistanceCheckpointCount
+PrintPlayer1Lose
+    LDX #<LoseText - 2
+PrintPlayer1Status
+    JSR PrintStaticText
 
 OpDistanceCheckpointCount
     LDA OpTraffic0Msb
@@ -2300,7 +2328,7 @@ FontLookup ; Very fast font lookup for dynamic values!
     .byte #<CR + #FONT_OFFSET
     .byte #<CS + #FONT_OFFSET
     .byte #<CT + #FONT_OFFSET
-    .byte #<CV + #FONT_OFFSET ; If game over text is gone, we can replace the v for u!
+    .byte #<CU + #FONT_OFFSET 
     .byte #<Exclamation + #FONT_OFFSET ; 32
 
 
@@ -2550,8 +2578,8 @@ CT
 	.byte #%01000010; 
 	.byte #%11100111;
 
-CV 
-	.byte #%01000010;
+CU 
+	.byte #%11100111;
 	.byte #%10100101; 
 	.byte #%10100101; 
 	.byte #%10100101; 
@@ -2716,7 +2744,6 @@ CheckpointText; Only the LSB, which is the offset.
 	.byte #<Exclamation + #FONT_OFFSET
 
 HellwayLeftText
-	.byte #<Space + #FONT_OFFSET
 	.byte #<Pipe + #FONT_OFFSET
 	.byte #<CH + #FONT_OFFSET 
 	.byte #<CL + #FONT_OFFSET
@@ -2730,7 +2757,6 @@ HellwayRightText
 	.byte #<Exclamation + #FONT_OFFSET
 
 OpbText
-	.byte #<Space + #FONT_OFFSET
 	.byte #<Pipe + #FONT_OFFSET
 	.byte #<CO + #FONT_OFFSET
 	.byte #<CP + #FONT_OFFSET 
@@ -2756,6 +2782,16 @@ ReadyText
 	.byte #<CA + #FONT_OFFSET
 	.byte #<CD + #FONT_OFFSET 
 	.byte #<CY + #FONT_OFFSET
+
+WinText
+    .byte #<Pipe + #FONT_OFFSET
+	.byte #<C1 + #FONT_OFFSET
+	.byte #<Pipe + #FONT_OFFSET
+
+LoseText
+    .byte #<Pipe + #FONT_OFFSET
+	.byte #<C2 + #FONT_OFFSET
+	.byte #<Pipe + #FONT_OFFSET
 
 EndStaticText
 
