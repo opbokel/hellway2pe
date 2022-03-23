@@ -652,8 +652,6 @@ RightScoreWrite
 	LDA ScoreFontColor
     CMP #SCORE_FONT_COLOR_START
 	BEQ PrintStartGame
-	CMP #SCORE_FONT_COLOR_OVER
-	BEQ PrintGameOver
     
 OpDigit0Timer
     LDA OpCountdownTimer ;3
@@ -738,15 +736,6 @@ PrintCreditsRight
 PrintRightIntro
 	JSR PrintStaticText
 	JMP RightScoreWriteEnd
-PrintGameOver
-	LDA FrameCount0
-	BMI PrintOverText
-	LDX #<GameText
-	JMP StoreGameOverText
-PrintOverText
-	LDX #<OverText
-StoreGameOverText
-	JSR PrintStaticText
 RightScoreWriteEnd
 
 
@@ -2751,20 +2740,6 @@ YearText
 	.byte #<C0 + #FONT_OFFSET
 	.byte #<C2 + #FONT_OFFSET 
 	.byte #<C2 + #FONT_OFFSET
- 
-GameText
-	.byte #<CG + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<CM + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET 
-	.byte #<Space + #FONT_OFFSET
-
-OverText
-	.byte #<CO + #FONT_OFFSET
-	.byte #<CV + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET
-	.byte #<CR + #FONT_OFFSET 
-	.byte #<Space + #FONT_OFFSET
 
 GoText
 	.byte #<CG + #FONT_OFFSET
