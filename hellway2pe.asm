@@ -649,7 +649,9 @@ PrintGameMode
 RightScoreWrite
 	LDA GameStatus
 	BEQ PrintHellwayRight
-	LDA ScoreFontColor
+	LDA OpScoreFontColor
+    CMP #SCORE_FONT_COLOR_GOOD
+	BEQ PrintCheckpoint
     CMP #SCORE_FONT_COLOR_START
 	BEQ PrintStartGame
     
