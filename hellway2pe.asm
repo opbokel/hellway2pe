@@ -186,15 +186,12 @@ StartSWCHB = $DB ; Used for Score, so it cannot be cheated.
 AccelerateBuffer = $DC ; Change speed on buffer overflow.
 OpAccelerateBuffer = $DD ; Change speed on buffer overflow.
 
-TextSide = $DE ; Smarter to use a screen side variable for all
-TextFlickerMode = $DF ; First variable to condense into one or remove if not enough ram
+Player0SpeedL = $DE
+Player1SpeedL = $DF
+Player0SpeedH = $F0
+Player1SpeedH = $F1
 
-Player0SpeedL = $F0
-Player1SpeedL = $F1
-Player0SpeedH = $F2
-Player1SpeedH = $F3
-
-IsOpponentInFront = $F4 ; Bit 7 tells if negative or positive.
+IsOpponentInFront = $F2 ; Bit 7 tells if negative or positive.
 
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
@@ -344,17 +341,7 @@ MainLoop
 	STA VSYNC	
 	STA WSYNC
     STA HMOVE  ;2 Apply Movement, must be done after a WSYNC
-CalculateTextSide ; Here because it is a waste of cycles not to put anything
-	LDA #%00000001 ;3
-	BIT TextFlickerMode ;2
-	BEQ TextSideFrameZero ;2
-	AND FrameCount1 ;2
-	JMP StoreTextSize ;3
-TextSideFrameZero
-	AND FrameCount0 ;2
-StoreTextSize	
-	STA TextSide ;3
-
+    ;Some free cycles here!
 PrepareMaxHMove
     LDA #BACKGROUND_COLOR; Restores the black blackground (because of QR), here only for optimization
 	STA COLUBK
@@ -452,17 +439,6 @@ CallEverySecond ; Timer for now
     INX 
     JSR EverySecond
 
-ChangeTextFlickerMode
-	LDA SwitchDebounceCounter
-	BNE EndChangeTextFlickerMode
-	LDA SWCHB
-	AND #%00000010 ;Game select
-	BNE EndChangeTextFlickerMode
-	INC TextFlickerMode
-	LDA #SWITCHES_DEBOUNCE_TIME
-	STA SwitchDebounceCounter
-EndChangeTextFlickerMode
-
 CallProcessSpeed
     LDX #0
     JSR ProcessSpeed
@@ -532,10 +508,9 @@ CallProcessSound ; We might save cycles by updating one channel per frame.
     STA Tmp1
     JSR ProcessSound
 
-;Could be done during on vblank to save this comparisson time (before draw score), 
-;but I am saving vblank cycles for now, in case of 2 players.
 ChooseTextSide ; 
-	LDA TextSide ;3
+	LDA FrameCount0 ;3
+    AND #%00000001
 	BNE LeftScoreWrite ; Half of the screen with the correct colors.
 	JMP RightScoreWrite 
 
@@ -774,7 +749,8 @@ ConfigurePFForScore
 	JSR ClearAll
 	LDA #%00000010 ; Score mode
 	STA CTRLPF
-	LDA TextSide ;3
+	LDA FrameCount0 ;3
+    AND #%00000001
 	BNE LeftScoreOn ; Half of the screen with the correct colors.
 RightScoreOn
 	LDA OpScoreFontColor
