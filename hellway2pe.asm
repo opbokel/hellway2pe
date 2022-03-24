@@ -52,8 +52,7 @@ TRAFFIC_CHANCE_RUSH_HOUR = 44
 CHECKPOINT_TIME_RUSH_HOUR = 44
 TRAFFIC_COLOR_RUSH_HOUR = $09
 
-BACKGROUND_COLOR = $03 ;Grey
-SCORE_BACKGROUND_COLOR = $A0
+BACKGROUND_COLOR = $00 ;It is all dark mode now
 
 SCORE_FONT_COLOR_EASTER_EGG = $38
 
@@ -357,7 +356,9 @@ StoreTextSize
 	STA TextSide ;3
 
 PrepareMaxHMove
-    SLEEP 18 ; Ensures "Should not be modified during the 24 computer cycles immediately following an HMOVE"
+    LDA #BACKGROUND_COLOR; Restores the black blackground (because of QR), here only for optimization
+	STA COLUBK
+    SLEEP 24 - 11 ; Ensures "Should not be modified during the 24 computer cycles immediately following an HMOVE" 11 is the minimun cycles used until here
     LDA #$80
     STA HMBL
 	STA HMM0
@@ -769,21 +770,7 @@ PrintRightIntro
 RightScoreWriteEnd
 
 
-ScoreBackgroundColor
-	LDX #0
-	LDA SWCHB
-	AND #%00001000 ; If Black and white, this will make A = 0
-    EOR #%00001000 ; Make black the default, can be optimized.
-	BEQ BlackAndWhiteScoreBg
-	LDA #SCORE_BACKGROUND_COLOR
-	LDX #BACKGROUND_COLOR
-BlackAndWhiteScoreBg
-	STA Tmp2 ; Score Background
-	STX Tmp3 ; Traffic Background
-
 ConfigurePFForScore
-	;LDA #SCORE_BACKGROUND_COLOR; Done above
-	STA COLUBK
 	JSR ClearAll
 	LDA #%00000010 ; Score mode
 	STA CTRLPF
@@ -792,13 +779,13 @@ ConfigurePFForScore
 RightScoreOn
 	LDA OpScoreFontColor
 	STA COLUP1
-	LDA Tmp2
+	LDA #BACKGROUND_COLOR
 	STA COLUP0
 	JMP CallWaitForVblankEnd
 LeftScoreOn
 	LDA ScoreFontColor
 	STA COLUP0
-	LDA Tmp2
+	LDA #BACKGROUND_COLOR
 	STA COLUP1
 
 ; After here we are going to update the screen, No more heavy code
@@ -843,24 +830,16 @@ PrepareForTraffic
 
 	LDY #GAMEPLAY_AREA ;2; (Score)
 
-    SLEEP 24 ; Keep the backround color more time, only needed if still support non dark mode
-
-    LDX Tmp3 ; Background color.
-
     LDA FrameCount0 ;Brach flag
     AND #%00000001 
 
-	STX COLUBK ;3
-    BNE OpDrawCache ;2
-	JMP DrawCache ;3 Skips the first WSYNC, so the last background line can be draw to the end.
+    BNE OpScanLoop ;2
+	JMP ScanLoop ;3 Skips the first WSYNC, so the last background line can be draw to the end.
 	;The first loop never drans a car, so it is fine this jump uses 3 cycles of the next line.
 
 ;main scanline loop...
 OpScanLoop
-	STA WSYNC ;?? from the end of the scan loop, sync the final line
-
-;Start of next line!			
-OpDrawCache ;63 Is the last line going to the top of the next frame?
+	STA WSYNC ;from the end of the scan loop, sync the final line
 
 	LDA GRP0Cache ;3
 	STA GRP0      ;3
@@ -1008,10 +987,8 @@ OpFinishScanLoop ; 7 209 of 222
 
 ;main scanline loop...
 ScanLoop 
-	STA WSYNC ;?? from the end of the scan loop, sync the final line
+	STA WSYNC ;from the end of the scan loop, sync the final line
 
-;Start of next line!			
-DrawCache ;63 Is the last line going to the top of the next frame?
 	LDA PF0Cache ;3
 	STA PF0	     ;3
 	
