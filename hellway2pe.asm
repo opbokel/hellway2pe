@@ -65,8 +65,8 @@ SCORE_FONT_COLOR_BAD = $44
 SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
 SCORE_FONT_COLOR_OVER = $0C
 
-PLAYER_0_X_START = 33;
-PLAYER_1_X_START = 42;
+PLAYER_0_X_START = 32;
+PLAYER_1_X_START = 41;
 PLAYER_MAX_X = 44 ; Going left will underflow to FF, so it only have to be less (unsigned) than this
 
 INITIAL_COUNTDOWN_TIME = 90; Seconds +-
@@ -311,7 +311,7 @@ ConfigureNextCheckpoint
 
 	LDA #0 ; Avoid missile reseting position 
 	;SLEEP 41
-    SLEEP 4;
+    SLEEP 5;
 	STA RESM0
 	SLEEP 2;
 	STA RESBL
@@ -319,7 +319,7 @@ ConfigureNextCheckpoint
 	STA RESM1
     SLEEP 3
 
-	LDA #$E0
+	LDA #$D0
 	STA HMBL
 	STA HMM0
 	STA HMM1
@@ -327,9 +327,8 @@ ConfigureNextCheckpoint
 	STA HMOVE
 	STA WSYNC ; Time is irrelevant before sync to TV, ROM space is not!
 	STA HMCLR
-    SLEEP 30
+    SLEEP 31
     STA RESP0
-    ;SLEEP 5 ; Temporarily move player 1 away.
     STA RESP1
 
 WaitResetToEnd
@@ -944,7 +943,7 @@ OpDrawTraffic0; 21 2pe
     AND #%00001000 ;2
     BEQ OpHasNoBorderP0 ;3
 OpHasBorderP0
-    LDA #%01110000 ; 2
+    LDA #%11100000 ; 2
     JMP OpStoreBorderP0 ; 3
 OpHasNoBorderP0
     LDA #0 ; 2
@@ -1087,7 +1086,7 @@ DrawTraffic0; 21 2pe
     AND #%00001000 ;2
     BEQ HasNoBorderP0 ;3
 HasBorderP0
-    LDA #%01110000 ; 2
+    LDA #%11100000 ; 2
     JMP StoreBorderP0 ; 3
 HasNoBorderP0
     LDA #0 ; 2
