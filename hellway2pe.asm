@@ -1998,7 +1998,7 @@ IsGameOver
 	ORA Player0SpeedL,X
 	ORA Player0SpeedH,X
 	BNE IsCheckpoint
-	LDA #1
+	LDA #2  ; We are not processing the status every frame anymore, need to survice at least 2 frames.
 	STA ScoreFontColorHoldChange,X
 	LDA PlayerToScoreOverColor,X
 	STA ScoreFontColor,X
@@ -2030,7 +2030,7 @@ SkipIsCheckpoint
 IsTimeOver
 	LDA CountdownTimer,X
 	BNE SkipIsTimeOver
-	LDA #1 ; Red while 0, so just sets for the next frame, might still pass a checkpoint by inertia
+	LDA #2 ; We are not processing the status every frame anymore, need to survice at least 2 frames.
 	STA ScoreFontColorHoldChange,X
 	LDA PlayerToScoreBadColor,X
 	STA ScoreFontColor,X

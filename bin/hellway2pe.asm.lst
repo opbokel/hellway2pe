@@ -2521,7 +2521,7 @@
    1998  fa06		       15 de		      ORA	Player0SpeedL,X
    1999  fa08		       15 f0		      ORA	Player0SpeedH,X
    2000  fa0a		       d0 0c		      BNE	IsCheckpoint
-   2001  fa0c		       a9 01		      LDA	#1
+   2001  fa0c		       a9 02		      LDA	#2	; We are not processing the status every frame anymore, need to survice at least 2 frames.
    2002  fa0e		       95 cb		      STA	ScoreFontColorHoldChange,X
    2003  fa10		       bd b7 fc 	      LDA	PlayerToScoreOverColor,X
    2004  fa13		       95 c9		      STA	ScoreFontColor,X
@@ -2553,7 +2553,7 @@
    2030  fa3f				   IsTimeOver
    2031  fa3f		       b5 b8		      LDA	CountdownTimer,X
    2032  fa41		       d0 09		      BNE	SkipIsTimeOver
-   2033  fa43		       a9 01		      LDA	#1	; Red while 0, so just sets for the next frame, might still pass a checkpoint by inertia
+   2033  fa43		       a9 02		      LDA	#2	; We are not processing the status every frame anymore, need to survice at least 2 frames.
    2034  fa45		       95 cb		      STA	ScoreFontColorHoldChange,X
    2035  fa47		       bd b9 fc 	      LDA	PlayerToScoreBadColor,X
    2036  fa4a		       95 c9		      STA	ScoreFontColor,X
