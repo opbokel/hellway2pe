@@ -54,13 +54,20 @@ TRAFFIC_COLOR_RUSH_HOUR = $09
 
 BACKGROUND_COLOR = $00 ;It is all dark mode now
 
-PLAYER0_COLOR = $F9
-PLAYER1_COLOR = $97
-
 SCORE_FONT_COLOR_GOOD = $D8
+OP_SCORE_FONT_COLOR_GOOD = $38
+
 SCORE_FONT_COLOR_BAD = $44
+OP_SCORE_FONT_COLOR_BAD = $E7
+
 SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
+OP_SCORE_FONT_COLOR_START = $37 ;Cannot be the same as good, font colors = game state
+
 SCORE_FONT_COLOR_OVER = $0C
+OP_SCORE_FONT_COLOR_OVER = $AB
+
+PLAYER0_COLOR = $F9
+PLAYER1_COLOR = $98
 
 PLAYER_0_X_START = 32;
 PLAYER_1_X_START = 41;
@@ -81,8 +88,6 @@ PARALLAX_SIZE = 8
 HALF_TEXT_SIZE = 5
 
 ONE_SECOND_FRAMES = 60
-
-VERSION_COLOR = $49
 
 QR_CODE_LINE_HEIGHT = 7
 QR_CODE_BACKGROUNG = $0F
@@ -507,7 +512,7 @@ CallProcessSound ; We might save cycles by updating one channel per frame.
 ChooseTextSide ; 
 	LDA FrameCount0 ;3
     AND #%00000001
-	BNE LeftScoreWrite ; Half of the screen with the correct colors.
+	BEQ LeftScoreWrite ; Half of the screen with the correct colors.
 	JMP RightScoreWrite 
 
 LeftScoreWrite
@@ -636,11 +641,11 @@ RightScoreWrite
 	LDA GameStatus
 	BEQ PrintHellwayRight
 	LDA OpScoreFontColor
-    CMP #SCORE_FONT_COLOR_GOOD
+    CMP #OP_SCORE_FONT_COLOR_GOOD
 	BEQ PrintCheckpoint
-    CMP #SCORE_FONT_COLOR_START
+    CMP #OP_SCORE_FONT_COLOR_START
 	BEQ PrintStartGame
-    CMP #SCORE_FONT_COLOR_OVER
+    CMP #OP_SCORE_FONT_COLOR_OVER
 	BEQ ProcessPlayer1OverText
     
 OpDigit0Timer
@@ -687,7 +692,7 @@ ProcessPlayer1OverText
     BMI PrintPlayer1Lose
 PrintPlayer1Win
     LDX #<WinText - 2
-    JMP OpDistanceCheckpointCount
+    JMP PrintPlayer1Status
 PrintPlayer1Lose
     LDX #<LoseText - 2
 PrintPlayer1Status
@@ -747,7 +752,7 @@ ConfigurePFForScore
 	STA CTRLPF
 	LDA FrameCount0 ;3
     AND #%00000001
-	BNE LeftScoreOn ; Half of the screen with the correct colors.
+	BEQ LeftScoreOn ; Half of the screen with the correct colors.
 RightScoreOn
 	LDA OpScoreFontColor
 	STA COLUP1
@@ -1145,6 +1150,7 @@ SetGameRunning
 	STA FrameCount1
 	LDA #SCORE_FONT_COLOR_START
 	STA ScoreFontColor
+    LDA #OP_SCORE_FONT_COLOR_START
     STA OpScoreFontColor
 	LDA #SCORE_FONT_HOLD_CHANGE
 	STA ScoreFontColorHoldChange
@@ -1248,9 +1254,9 @@ Subroutines
 ProcessSound
 SoundEffects ; 71 More speed = smaller frequency divider. Just getting speed used MSB. (0 to 23)
 	LDA ScoreFontColor,X ;3
-	CMP #SCORE_FONT_COLOR_OVER ;2
+	CMP PlayerToScoreOverColor,X ;2
 	BEQ EngineSound ;2 A little bit of silence, since you will be run over all the time
-	CMP #SCORE_FONT_COLOR_GOOD ;2
+	CMP PlayerToScoreGoodColor,X ;2
 	BEQ PlayCheckpoint ;2
 	LDA CollisionCounter,X ;3
 	CMP #$E0 ;2
@@ -1731,9 +1737,9 @@ TestCollisionAndMove
 	LDA CollisionCounter,X ; If colision is alredy happening, ignore!
 	BNE NoCollision	
 	LDA ScoreFontColor,X ; Ignore colisions during checkpoint (Green Score)
-	CMP #SCORE_FONT_COLOR_GOOD
+	CMP PlayerToScoreGoodColor,X
 	BEQ NoCollision
-	CMP #SCORE_FONT_COLOR_START
+	CMP PlayerToScoreStartColor,X
 	BEQ NoCollision
 	LDA #COLLISION_FRAMES
 	STA CollisionCounter,X
@@ -1994,7 +2000,7 @@ IsGameOver
 	BNE IsCheckpoint
 	LDA #1
 	STA ScoreFontColorHoldChange,X
-	LDA #SCORE_FONT_COLOR_OVER
+	LDA PlayerToScoreOverColor,X
 	STA ScoreFontColor,X
 	JMP SkipIsTimeOver
 
@@ -2005,7 +2011,7 @@ IsCheckpoint
 	CLC
 	ADC #CHECKPOINT_INTERVAL
 	STA NextCheckpoint,X
-	LDA #SCORE_FONT_COLOR_GOOD
+	LDA PlayerToScoreGoodColor,X
 	STA ScoreFontColor,X
 	LDA #SCORE_FONT_HOLD_CHANGE
 	STA ScoreFontColorHoldChange,X
@@ -2026,7 +2032,7 @@ IsTimeOver
 	BNE SkipIsTimeOver
 	LDA #1 ; Red while 0, so just sets for the next frame, might still pass a checkpoint by inertia
 	STA ScoreFontColorHoldChange,X
-	LDA #SCORE_FONT_COLOR_BAD
+	LDA PlayerToScoreBadColor,X
 	STA ScoreFontColor,X
 SkipIsTimeOver
     RTS
@@ -2325,6 +2331,22 @@ SpeedToBarLookup ; Speed will vary from 0 to 20 and mapped to a 0 to 15 space
 PlayerToDefaultColor
     .byte #PLAYER0_COLOR
     .byte #PLAYER1_COLOR
+
+PlayerToScoreGoodColor
+    .byte #SCORE_FONT_COLOR_GOOD
+    .byte #OP_SCORE_FONT_COLOR_GOOD
+
+PlayerToScoreStartColor
+    .byte #SCORE_FONT_COLOR_START
+    .byte #OP_SCORE_FONT_COLOR_START
+
+PlayerToScoreOverColor
+    .byte #SCORE_FONT_COLOR_OVER
+    .byte #OP_SCORE_FONT_COLOR_OVER
+
+PlayerToScoreBadColor
+    .byte #SCORE_FONT_COLOR_BAD
+    .byte #OP_SCORE_FONT_COLOR_BAD
 
 	org $FD00
 Font	
