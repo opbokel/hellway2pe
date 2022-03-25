@@ -383,7 +383,7 @@ Player0IsReady           f278
 Player0SpeedH            00f0              (R )
 Player0SpeedL            00de              (R )
 Player0X                 00b6              (R )
-PLAYER1_COLOR            0096              (R )
+PLAYER1_COLOR            0097              (R )
 Player1IsOpponent        f82a                  
 Player1IsReady           f31b                  
 Player1SpeedH            00f1              (R )
@@ -462,9 +462,7 @@ RightScoreWrite          f29a              (R )
 RightScoreWriteEnd       f336              (R )
 RSYNC                    0003                  
 ScanLoop                 f44b              (R )
-SCORE_FONT_COLOR         00f9                  
 SCORE_FONT_COLOR_BAD     0044              (R )
-SCORE_FONT_COLOR_EASTER_EGG 0038                  
 SCORE_FONT_COLOR_GOOD    00d8              (R )
 SCORE_FONT_COLOR_OVER    000c              (R )
 SCORE_FONT_COLOR_START   00c8              (R )
