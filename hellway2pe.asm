@@ -58,7 +58,7 @@ SCORE_FONT_COLOR_GOOD = $D8
 OP_SCORE_FONT_COLOR_GOOD = $38
 
 SCORE_FONT_COLOR_BAD = $44
-OP_SCORE_FONT_COLOR_BAD = $E7
+OP_SCORE_FONT_COLOR_BAD = $56
 
 SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
 OP_SCORE_FONT_COLOR_START = $37 ;Cannot be the same as good, font colors = game state
