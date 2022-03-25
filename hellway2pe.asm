@@ -2766,34 +2766,6 @@ LoseText
 
 EndStaticText
 
-TachometerSizeLookup1
-	.byte #%00011111
-	.byte #%00111111
-	.byte #%01111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-	.byte #%11111111
-
-TachometerSizeLookup2
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%00000000
-	.byte #%10000000
-	.byte #%11000000
-	.byte #%11100000
-	.byte #%11110000
-
-TachometerGearLookup
-	.byte #%00000001
-	.byte #%00000010
-	.byte #%00000100
-	.byte #%00001000
-	.byte #%00010000
-	.byte #%00110000
-
 EngineSoundType
 	.byte #2
 	.byte #2
