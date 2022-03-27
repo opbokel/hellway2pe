@@ -598,24 +598,8 @@ Digit1Timer
 	STA ScoreD0 ;3
 
 SpeedBar
-	LDA Player0SpeedL
-	AND #%11100000 ;2 Discard the last bits
-	CLC
-	ROL ;First goes into carry
-	ROL
-	ROL
-    ROL
-	STA Tmp0
-	LDA Player0SpeedH
-	ASL
-	ASL
-    ASL
-	ORA Tmp0
-	TAX ; 2
-	LDA SpeedToBarLookup,X ;4
-	STA ScoreD2 ;3
-    JMP DistanceCheckpointCount
-
+	LDX #0
+    JSR PrintSpeedBar
 
 DistanceCheckpointCount ; Will run all letters in the future
     LDA Traffic0Msb
@@ -726,22 +710,8 @@ OpDigit1Timer
 	STA ScoreD3 ;3
 
 OpSpeedBar
-	LDA Player1SpeedL
-	AND #%11100000 ;2 Discard the last bits
-	CLC
-	ROL ;First goes into carry
-	ROL
-	ROL
-    ROL
-	STA Tmp0
-	LDA Player1SpeedH
-	ASL
-	ASL
-    ASL
-	ORA Tmp0
-	TAX ; 2
-	LDA SpeedToBarLookup,X ;4
-	STA ScoreD2 ;3
+	LDX #1
+    JSR PrintSpeedBar
 
 OpDistanceCheckpointCount
     LDA OpTraffic0Msb
@@ -771,7 +741,6 @@ OpDistanceBar ; 16 subdivisions per checkpoint
 
 ScoreWriteEnd
 RightScoreWriteEnd
-
 
 ConfigurePFForScore
 	JSR ClearAll
@@ -2107,6 +2076,25 @@ PrintScoreHoldChange
     LSR
     TAY
     LDA BarLookup,Y
+    RTS
+
+PrintSpeedBar
+	LDA Player0SpeedL,X
+	AND #%11100000 ;2 Discard the last bits
+	CLC
+	ROL ;First goes into carry
+	ROL
+	ROL
+    ROL
+	STA Tmp0
+	LDA Player0SpeedH,X
+	ASL
+	ASL
+    ASL
+	ORA Tmp0
+	TAX ; 2
+	LDA SpeedToBarLookup,X ;4
+	STA ScoreD2 ;3
     RTS
 
 ; Moved here because of rom space.
