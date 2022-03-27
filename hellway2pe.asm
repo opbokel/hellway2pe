@@ -2092,8 +2092,8 @@ PrintSpeedBar
 	ASL
     ASL
 	ORA Tmp0
-	TAX ; 2
-	LDA SpeedToBarLookup,X ;4
+	TAY ; 2
+	LDA SpeedToBarLookup,Y ;4
 	STA ScoreD2 ;3
     RTS
 
