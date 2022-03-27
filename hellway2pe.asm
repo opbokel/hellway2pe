@@ -54,14 +54,14 @@ TRAFFIC_COLOR_RUSH_HOUR = $09
 
 BACKGROUND_COLOR = $00 ;It is all dark mode now
 
-SCORE_FONT_COLOR_GOOD = $D8
-OP_SCORE_FONT_COLOR_GOOD = $38
+SCORE_FONT_COLOR_GOOD = $37
+OP_SCORE_FONT_COLOR_GOOD = $D8
 
 SCORE_FONT_COLOR_BAD = $44
 OP_SCORE_FONT_COLOR_BAD = $56
 
-SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
-OP_SCORE_FONT_COLOR_START = $37 ;Cannot be the same as good, font colors = game state
+SCORE_FONT_COLOR_START = $38 ;Cannot be the same as good, font colors = game state
+OP_SCORE_FONT_COLOR_START = $C8 ;Cannot be the same as good, font colors = game state
 
 SCORE_FONT_COLOR_OVER = $0C
 OP_SCORE_FONT_COLOR_OVER = $AB
@@ -399,7 +399,6 @@ DeterministicGame
 
 EndRandomizeGame
 
-
 CountFrame	
 	INC FrameCount0 ; 5
 	BNE SkipIncFC1 ; 2 When it is zero again should increase the MSB
@@ -516,15 +515,67 @@ ChooseTextSide ;
 	JMP RightScoreWrite 
 
 LeftScoreWrite
-	LDA ScoreFontColor
-	CMP #SCORE_FONT_COLOR_GOOD
-	BEQ PrintCheckpoint
-	CMP #SCORE_FONT_COLOR_START
-	BEQ PrintStartGame
-    CMP #SCORE_FONT_COLOR_OVER
-	BEQ ProcessPlayer0OverText
 	LDA GameStatus
 	BEQ PrintHellwayLeft
+	LDA ScoreFontColor
+	CMP #SCORE_FONT_COLOR_GOOD
+	BEQ PrintPlayer0Checkpoint
+	CMP #SCORE_FONT_COLOR_START
+	BEQ PrintPlayer0StartGame
+    CMP #SCORE_FONT_COLOR_OVER
+	BEQ ProcessPlayer0OverText
+ContinueP0Score
+    JMP Digit0Timer
+
+PrintHellwayLeft
+    LDA INPT4 ; Joystick is pressed, show ready!
+    BMI ContinueWithDefaultLeftText
+Player0IsReady
+    LDX #<ReadyText
+    JSR PrintStaticText
+    JMP RightScoreWriteEnd;3
+ContinueWithDefaultLeftText
+	LDA FrameCount1
+	AND #1
+	BNE PrintCreditsLeft
+	LDX #<HellwayLeftText - 1 ; Padding
+	JMP PrintGameMode
+PrintCreditsLeft
+	LDX #<OpbText - 1 ; Padding
+
+PrintGameMode
+	JSR PrintStaticText
+	LDX GameMode
+	LDA FontLookup,X ;4 
+	STA ScoreD0 ;3
+	JMP RightScoreWriteEnd;3
+
+ProcessPlayer0OverText
+    LDA IsOpponentInFront
+    BMI PrintPlayer0Lose
+PrintPlayer0Win
+    LDX #<WinText
+    JMP PrintPlayer0Status
+PrintPlayer0Lose
+    LDX #<LoseText
+PrintPlayer0Status
+    JSR PrintStaticText
+    JMP DistanceCheckpointCount;3
+
+PrintPlayer0Checkpoint
+	LDX #<CheckpointText
+	JSR PrintStaticText
+	JMP PrintPlayer0ScoreHoldChange;3
+    
+PrintPlayer0StartGame
+	LDX #<GoText
+	JSR PrintStaticText
+
+PrintPlayer0ScoreHoldChange
+    LDX #0
+    JSR PrintScoreHoldChange
+    STA ScoreD4
+	JMP RightScoreWriteEnd;3
 
 Digit0Timer
 	LDA CountdownTimer ;3
@@ -565,16 +616,6 @@ SpeedBar
 	STA ScoreD2 ;3
     JMP DistanceCheckpointCount
 
-ProcessPlayer0OverText
-    LDA IsOpponentInFront
-    BMI PrintPlayer0Lose
-PrintPlayer0Win
-    LDX #<WinText
-    JMP PrintPlayer0Status
-PrintPlayer0Lose
-    LDX #<LoseText
-PrintPlayer0Status
-    JSR PrintStaticText
 
 DistanceCheckpointCount ; Will run all letters in the future
     LDA Traffic0Msb
@@ -605,49 +646,65 @@ DistanceBar ; 16 subdivisions per checkpoint
 EndDrawDistance
 	JMP RightScoreWriteEnd;3
 
-PrintCheckpoint
-	LDX #<CheckpointText
-	JSR PrintStaticText
-	JMP RightScoreWriteEnd;3
-PrintStartGame
-	LDX #<GoText
-	JSR PrintStaticText
-	JMP RightScoreWriteEnd;3
-
-PrintHellwayLeft
-    LDA INPT4 ; Joystick is pressed, show ready!
-    BMI ContinueWithDefaultLeftText
-Player0IsReady
-    LDX #<ReadyText
-    JSR PrintStaticText
-    JMP RightScoreWriteEnd;3
-ContinueWithDefaultLeftText
-	LDA FrameCount1
-	AND #1
-	BNE PrintCreditsLeft
-	LDX #<HellwayLeftText - 1 ; Padding
-	JMP PrintGameMode
-PrintCreditsLeft
-	LDX #<OpbText - 1 ; Padding
-
-PrintGameMode
-	JSR PrintStaticText
-	LDX GameMode
-	LDA FontLookup,X ;4 
-	STA ScoreD0 ;3
-	JMP RightScoreWriteEnd;3
-
 RightScoreWrite
 	LDA GameStatus
 	BEQ PrintHellwayRight
 	LDA OpScoreFontColor
     CMP #OP_SCORE_FONT_COLOR_GOOD
-	BEQ PrintCheckpoint
+	BEQ PrintPlayer1Checkpoint
     CMP #OP_SCORE_FONT_COLOR_START
-	BEQ PrintStartGame
+	BEQ PrintPlayer1StartGame
     CMP #OP_SCORE_FONT_COLOR_OVER
 	BEQ ProcessPlayer1OverText
+ContinueP1Score
+    JMP OpDigit1Timer
     
+PrintHellwayRight
+    LDA INPT5 ; Joystick is pressed, show ready!
+    BMI ContinueWithDefaultRightText
+Player1IsReady
+    LDX #<ReadyText
+    JSR PrintStaticText
+    JMP RightScoreWriteEnd;3
+ContinueWithDefaultRightText
+	LDA FrameCount1
+	AND #1
+	BNE PrintCreditsRight
+	LDX #<HellwayRightText
+	JMP PrintRightIntro
+PrintCreditsRight
+	LDX #<YearText
+PrintRightIntro
+	JSR PrintStaticText
+	JMP RightScoreWriteEnd
+
+ProcessPlayer1OverText
+    LDA IsOpponentInFront
+    BMI PrintPlayer1Lose
+PrintPlayer1Win
+    LDX #<WinText - 2
+    JMP PrintPlayer1Status
+PrintPlayer1Lose
+    LDX #<LoseText - 2
+PrintPlayer1Status
+    JSR PrintStaticText
+    JMP OpDistanceCheckpointCount
+
+PrintPlayer1Checkpoint
+	LDX #<CheckpointText - 1
+	JSR PrintStaticText
+	JMP PrintPlayer1ScoreHoldChange;3
+    
+PrintPlayer1StartGame
+	LDX #<GoText - 1
+	JSR PrintStaticText
+
+PrintPlayer1ScoreHoldChange
+    LDX #1
+    JSR PrintScoreHoldChange
+    STA ScoreD0
+	JMP RightScoreWriteEnd;3
+
 OpDigit0Timer
     LDA OpCountdownTimer ;3
     STA Tmp0
@@ -685,18 +742,6 @@ OpSpeedBar
 	TAX ; 2
 	LDA SpeedToBarLookup,X ;4
 	STA ScoreD2 ;3
-    JMP OpDistanceCheckpointCount
-
-ProcessPlayer1OverText
-    LDA IsOpponentInFront
-    BMI PrintPlayer1Lose
-PrintPlayer1Win
-    LDX #<WinText - 2
-    JMP PrintPlayer1Status
-PrintPlayer1Lose
-    LDX #<LoseText - 2
-PrintPlayer1Status
-    JSR PrintStaticText
 
 OpDistanceCheckpointCount
     LDA OpTraffic0Msb
@@ -723,26 +768,8 @@ OpDistanceBar ; 16 subdivisions per checkpoint
 	TAX ; 2
 	LDA BarLookup,X ;4 
 	STA ScoreD0 ;3
-    JMP RightScoreWriteEnd
 
-PrintHellwayRight
-    LDA INPT5 ; Joystick is pressed, show ready!
-    BMI ContinueWithDefaultRightText
-Player1IsReady
-    LDX #<ReadyText
-    JSR PrintStaticText
-    JMP RightScoreWriteEnd;3
-ContinueWithDefaultRightText
-	LDA FrameCount1
-	AND #1
-	BNE PrintCreditsRight
-	LDX #<HellwayRightText
-	JMP PrintRightIntro
-PrintCreditsRight
-	LDX #<YearText
-PrintRightIntro
-	JSR PrintStaticText
-	JMP RightScoreWriteEnd
+ScoreWriteEnd
 RightScoreWriteEnd
 
 
@@ -2070,6 +2097,18 @@ ResetScoreFontColor
 SkipScoreFontColor
     RTS
 
+; X = Player
+; A Returns result to be sotored in the proper digit
+PrintScoreHoldChange
+    LDA ScoreFontColorHoldChange,X
+    LSR
+    LSR
+    LSR
+    LSR
+    TAY
+    LDA BarLookup,Y
+    RTS
+
 ; Moved here because of rom space.
 ; The only SBR in constants space
 DrawQrCode
@@ -2712,7 +2751,6 @@ CheckpointText; Only the LSB, which is the offset.
 	.byte #<CK + #FONT_OFFSET
 	.byte #<CP + #FONT_OFFSET 
 	.byte #<CT + #FONT_OFFSET
-	.byte #<Exclamation + #FONT_OFFSET
 
 HellwayLeftText
 	.byte #<Pipe + #FONT_OFFSET
@@ -2745,14 +2783,6 @@ GoText
 	.byte #<CO + #FONT_OFFSET
 	.byte #<Exclamation + #FONT_OFFSET
 	.byte #<Exclamation + #FONT_OFFSET 
-	.byte #<Exclamation + #FONT_OFFSET
-
-ReadyText
-    .byte #<CR + #FONT_OFFSET
-	.byte #<CE + #FONT_OFFSET
-	.byte #<CA + #FONT_OFFSET
-	.byte #<CD + #FONT_OFFSET 
-	.byte #<CY + #FONT_OFFSET
 
 WinText
     .byte #<Pipe + #FONT_OFFSET
@@ -2763,6 +2793,13 @@ LoseText
     .byte #<Pipe + #FONT_OFFSET
 	.byte #<C2 + #FONT_OFFSET
 	.byte #<Pipe + #FONT_OFFSET
+
+ReadyText
+    .byte #<CR + #FONT_OFFSET
+	.byte #<CE + #FONT_OFFSET
+	.byte #<CA + #FONT_OFFSET
+	.byte #<CD + #FONT_OFFSET 
+	.byte #<CY + #FONT_OFFSET
 
 EndStaticText
 
