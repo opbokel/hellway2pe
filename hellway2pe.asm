@@ -480,6 +480,9 @@ CallProcessFontColor
     LDA FrameCount0
     AND #%00000001
     BNE ContinueProcessFontColorPlayer0 ; Not my frame, always process!
+    LDA SWCHB ; Rubber Band Switch
+    AND #%00001000
+    BEQ ContinueProcessFontColorPlayer0
     LDA IsOpponentInFront
     BEQ ContinueProcessFontColorPlayer0 ; Oponent not in front
     LDA ScoreFontColor
@@ -492,6 +495,9 @@ ContinueProcessIsToUpdateColorPlayer1
     LDA FrameCount0
     AND #%00000001
     BEQ ContinueProcessFontColorPlayer1 ; Not my frame, always process!
+    LDA SWCHB ; Rubber Band Switch
+    AND #%00001000
+    BEQ ContinueProcessFontColorPlayer1
     LDA IsOpponentInFront
     BEQ ContinueProcessFontColorPlayer1 ; Oponent not in front
     LDA OpScoreFontColor
