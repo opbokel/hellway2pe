@@ -470,13 +470,37 @@ CallProcessOpponentLine
 
 SkipUpdateLogic ; Continue here if not paused
 
-CallStatusUpdateSbr
+CallCalculateGear
     LDX #0
     JSR CalculateGear
-    JSR ProcessScoreFontColor
     INX
     JSR CalculateGear
+
+CallProcessFontColor
+    LDA FrameCount0
+    AND #%00000001
+    BNE ContinueProcessFontColorPlayer0 ; Not my frame, always process!
+    LDA IsOpponentInFront
+    BEQ ContinueProcessFontColorPlayer0 ; Oponent not in front
+    LDA ScoreFontColor
+    CMP #SCORE_FONT_COLOR_GOOD
+    BEQ ContinueProcessFontColorPlayer1 ; Opponent is in front! Skip counting checkpoint for the frame (double time)
+ContinueProcessFontColorPlayer0
+    LDX #0
     JSR ProcessScoreFontColor
+ContinueProcessIsToUpdateColorPlayer1
+    LDA FrameCount0
+    AND #%00000001
+    BEQ ContinueProcessFontColorPlayer1 ; Not my frame, always process!
+    LDA IsOpponentInFront
+    BEQ ContinueProcessFontColorPlayer1 ; Oponent not in front
+    LDA OpScoreFontColor
+    CMP #OP_SCORE_FONT_COLOR_GOOD
+    BEQ SkipProcessFontColor ; Opponent is in front and is checkpoint Skip counting checkpoint for the frame (double time)
+ContinueProcessFontColorPlayer1
+    LDX #1
+    JSR ProcessScoreFontColor
+SkipProcessFontColor
 
 CallProcessPlayerStatus ; Only when visible, status depends on opponent line, 1 frame max delay is ok.
     LDA FrameCount0
@@ -641,7 +665,7 @@ RightScoreWrite
     CMP #OP_SCORE_FONT_COLOR_OVER
 	BEQ ProcessPlayer1OverText
 ContinueP1Score
-    JMP OpDigit1Timer
+    JMP OpDigit0Timer
     
 PrintHellwayRight
     LDA INPT5 ; Joystick is pressed, show ready!
