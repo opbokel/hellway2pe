@@ -691,6 +691,13 @@ PrintYearText
 	LDX #<YearText
 PrintRightIntro
 	JSR PrintStaticText
+PipeOnRuberBandOff
+    LDA SWCHB
+	AND #%00001000
+    BNE EndPrintHellwayRight
+    LDA #<Pipe + FONT_OFFSET
+    STA ScoreD0
+EndPrintHellwayRight
 	JMP RightScoreWriteEnd
 
 ProcessPlayer1OverText
