@@ -657,6 +657,13 @@ ContinueWithDefaultRightText
 	LDX #<HellwayRightText
 	JMP PrintRightIntro
 PrintCreditsRight
+    LDA FrameCount1
+	AND #%00000010
+    BEQ PrintYearText
+PrintBuildNumberText
+    LDX #<BuildNumberText
+    BNE PrintRightIntro ; Save one byte, it will neve be equal in not first text constant...
+PrintYearText
 	LDX #<YearText
 PrintRightIntro
 	JSR PrintStaticText
@@ -2781,6 +2788,13 @@ LoseText
     .byte #<Pipe + #FONT_OFFSET
 	.byte #<C2 + #FONT_OFFSET
 	.byte #<Pipe + #FONT_OFFSET
+
+BuildNumberText
+    .byte #<Space + #FONT_OFFSET
+    .byte #<CB + #FONT_OFFSET
+	.byte #<C0 + #FONT_OFFSET
+	.byte #<C8 + #FONT_OFFSET
+	.byte #<C6 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET
