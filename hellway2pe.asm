@@ -243,7 +243,7 @@ SkipClean
 	INX
 	BNE CleanMem
 
-	LDA #213
+	LDA #202 ; needs change if memory clean routine changes
 	STA TIM64T ;3	
 
 ;Setting some variables...
@@ -802,6 +802,7 @@ LeftScoreOn
 
 ; After here we are going to update the screen, No more heavy code
 CallWaitForVblankEnd
+    ;SLEEP 222 ;Force the game to its limits and check if no line count issue.
 	JSR WaitForVblankEnd
 
 DrawScoreHud
@@ -2861,7 +2862,7 @@ BuildNumberText
     .byte #<CB + #FONT_OFFSET
 	.byte #<C0 + #FONT_OFFSET
 	.byte #<C9 + #FONT_OFFSET
-	.byte #<C1 + #FONT_OFFSET 
+	.byte #<C7 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET
