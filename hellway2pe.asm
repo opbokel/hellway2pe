@@ -425,8 +425,7 @@ SelectCarWithDpadCall ; Only do it when game is stoped
 
     ; Needs to draw the opponent in the correct line even when game stoped  
     ; Draeing is a destructive operation
-    JSR ProcessOpponentLine 
-    JSR ConfigureCarSprites
+    JSR ProcessOpponentLineAndPlayerSprite
 
 SkipUpdateLogicJump
 	JMP SkipUpdateLogic
@@ -465,10 +464,7 @@ CallUpdateOffsets
     JSR UpdateOffsets
 
 CallProcessOpponentLine
-    JSR ProcessOpponentLine 
-
-CallConfigurePlayerSprites
-    JSR ConfigureCarSprites ; Every frame since roles are reversed!
+    JSR ProcessOpponentLineAndPlayerSprite
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -1624,45 +1620,6 @@ HMoveXTimes
     BNE HMoveXTimes
     RTS
 
-ConfigureCarSprites
-    LDA FrameCount0
-    AND #%00000001
-    BNE LoadForRightScreenSprites
-LoadForLeftScreenSprites
-    LDA CurrentCarId
-    STA Tmp0
-    LDA OpCurrentCarId
-    STA Tmp1
-    JMP LoadCarSpritesFromIds
-LoadForRightScreenSprites
-    LDA CurrentCarId
-    STA Tmp1
-    LDA OpCurrentCarId
-    STA Tmp0
-    
-LoadCarSpritesFromIds ; The pointers are reversed every frame, opponent car has no padding
-	LDY Tmp0
-	LDA CarIdToSpriteAddressL,Y
-	STA CarSpritePointerL
-	LDA CarIdToSpriteAddressH,Y
-	STA CarSpritePointerH
-ConfigureOpponentCarSprite
-    LDA Tmp4
-    BEQ UseDefaultOppoentCarSprite
-OverrideOpponentCarSprite
-    STA EnemyCarSpritePointerL
-    LDA Tmp5
-    STA EnemyCarSpritePointerH
-    JMP ReturnFromConfigureCarSprite
-UseDefaultOppoentCarSprite
-	LDY Tmp1
-	LDA EnemyCarIdToSpriteAddressL,Y
-	STA EnemyCarSpritePointerL
-	LDA EnemyCarIdToSpriteAddressH,Y
-	STA EnemyCarSpritePointerH
-ReturnFromConfigureCarSprite
-    RTS
-
 ; From http://www.6502.org/source/integers/hex2dec-more.htm
 ; Can be transformed into a 100 bytes lookup table if cycles are scarse...
 ; Tmp0 Binary Number
@@ -1686,7 +1643,6 @@ CNVBIT:
 	DEX		; And repeat for next bit
 	BNE CNVBIT
 	CLD		; Back to binary
-
 	RTS		; All Done.
 
 ;Tmp0 Current SWCHA mask, will be right shifted 4 times
@@ -1705,7 +1661,7 @@ ContinueSelectCarWithDpadLoop
     BPL SelectCarWithDpadLoop
     RTS
 
-ProcessOpponentLine
+ProcessOpponentLineAndPlayerSprite ; The sprite might depend on the line, the SBRs are connected
     LDA FrameCount0
     AND #%00000001
     SEC
@@ -1745,10 +1701,9 @@ CalculateOpponentVisibility
 OpponentNotVisible
     LDA #0
     STA Tmp4
-    STA Tmp5
     LDA #$FF
     STA OpponentLine
-    BNE ReturnFromProcessOpponentLine
+    BNE ConfigureCarSprites
 
 OpponentVisibleBehind
     LDA Tmp0
@@ -1756,13 +1711,14 @@ OpponentVisibleBehind
     CMP #13
     BCC OpponentFullyVisible ; A is Greater or equal
 OpponentVisibleInBehindNegativeNumber
-    LDA #3
+    LDA #68
     STA OpponentLine
+    STA Tmp4 ; Use sprite override
     LDA #<ArrowDownSprite
-    STA Tmp4
+    STA EnemyCarSpritePointerL
     LDA #>ArrowDownSprite
-    STA Tmp5
-    BNE ReturnFromProcessOpponentLine ; Always jump
+    STA EnemyCarSpritePointerH
+    BNE ConfigureCarSprites ; Always jump
 
 OpponentVisibleInFront
     LDA Tmp0
@@ -1772,21 +1728,53 @@ OpponentVisibleInFront
 OpponentVisibleInFrontPositiveNumber
     LDA #3
     STA OpponentLine
+    STA Tmp4 ; Use sprite override
     LDA #<ArrowUpSprite
-    STA Tmp4
+    STA EnemyCarSpritePointerL
     LDA #>ArrowUpSprite
-    STA Tmp5
-    BNE ReturnFromProcessOpponentLine ; Alwys jump
+    STA EnemyCarSpritePointerH
+    BNE ConfigureCarSprites ; Alwys jump
 
 OpponentFullyVisible
     LDA #0
     STA Tmp4
-    STA Tmp5
     CLC
     LDA Tmp0
     ADC #(GAMEPLAY_AREA - CAR_SIZE)
     STA OpponentLine
-ReturnFromProcessOpponentLine
+
+ConfigureCarSprites
+    LDA FrameCount0
+    AND #%00000001
+    BNE LoadForRightScreenSprites
+LoadForLeftScreenSprites
+    LDA CurrentCarId
+    STA Tmp0
+    LDA OpCurrentCarId
+    STA Tmp1
+    JMP LoadCarSpritesFromIds
+LoadForRightScreenSprites
+    LDA CurrentCarId
+    STA Tmp1
+    LDA OpCurrentCarId
+    STA Tmp0
+    
+LoadCarSpritesFromIds ; The pointers are reversed every frame, opponent car has no padding
+	LDY Tmp0
+	LDA CarIdToSpriteAddressL,Y
+	STA CarSpritePointerL
+	LDA CarIdToSpriteAddressH,Y
+	STA CarSpritePointerH
+ConfigureOpponentCarSprite
+    LDA Tmp4
+    BNE ReturnFromConfigureCarSprite ; Using override!
+OpponentCarSprite
+	LDY Tmp1
+	LDA EnemyCarIdToSpriteAddressL,Y
+	STA EnemyCarSpritePointerL
+	LDA EnemyCarIdToSpriteAddressH,Y
+	STA EnemyCarSpritePointerH
+ReturnFromConfigureCarSprite
     RTS
 
 ; Value stored in A
@@ -2870,8 +2858,8 @@ BuildNumberText
     .byte #<Space + #FONT_OFFSET
     .byte #<CB + #FONT_OFFSET
 	.byte #<C0 + #FONT_OFFSET
-	.byte #<C8 + #FONT_OFFSET
-	.byte #<C6 + #FONT_OFFSET 
+	.byte #<C9 + #FONT_OFFSET
+	.byte #<C1 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET
@@ -2938,6 +2926,8 @@ CarSprite3NoPadding
 	.byte #%01011010
 	.byte #%00111100
 
+    ds 1 ; Car start line is wrong, I would have to change all constants, for the others the existing padding solves. Waste 1 byte, save sanity!
+
 ArrowUpSprite
 	.byte #%11111111
 	.byte #%01111110
@@ -2945,6 +2935,7 @@ ArrowUpSprite
 	.byte #%00011000
 
 ArrowDownSprite
+    ds 3
     .byte #%00011000
 	.byte #%00111100
 	.byte #%01111110
