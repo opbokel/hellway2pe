@@ -426,9 +426,8 @@ SelectCarWithDpadCall ; Only do it when game is stoped
     ; Needs to draw the opponent in the correct line even when game stoped  
     ; Draeing is a destructive operation
     JSR ProcessOpponentLine 
-    
-CallConfigureCarSprites
     JSR ConfigureCarSprites
+
 SkipUpdateLogicJump
 	JMP SkipUpdateLogic
 ContinueWithGameLogic
@@ -467,6 +466,9 @@ CallUpdateOffsets
 
 CallProcessOpponentLine
     JSR ProcessOpponentLine 
+
+CallConfigurePlayerSprites
+    JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
 SkipUpdateLogic ; Continue here if not paused
 
@@ -524,9 +526,6 @@ CallProcessPlayer1Status
     LDX #1
     JSR ProcessPlayerStatus
 EndCallProcessPlayerStatus
-
-CallProcessPlayerSprites
-    JSR ConfigureCarSprites ; Every frame since roles are reversed!
 
 CallProcessSound ; We might save cycles by updating one channel per frame.
     LDX #0
@@ -962,12 +961,12 @@ OpAfterEorOffsetWithCarry3 ;17
 	STA ENAM1Cache
 OpFinishDrawTraffic3	
 
-OpDrawOponent ;26
+OpDrawOpponent ;26
     STY Tmp0 ;3
     LDY OpponentLine ;3
     CPY #(CAR_START_LINE - 8);2
     BCS OpSkipDrawOpponent ;2
-OpDrawOpponent
+OpDrawOpponentVisible
     LDA (EnemyCarSpritePointerL),Y ;5
     STA GRP0Cache ;3
     DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
@@ -1106,12 +1105,12 @@ AfterEorOffsetWithCarry3 ;17
 FinishDrawTraffic3	
 	
 
-DrawOponent ;26
+DrawOpponent ;26
     STY Tmp0 ;3
     LDY OpponentLine ;3
     CPY #(CAR_START_LINE - 8);2
     BCS SkipDrawOpponent ;2
-DrawOpponent
+DrawOpponentVisible
     LDA (EnemyCarSpritePointerL),Y ;5
     STA GRP1Cache ;3
     DEC OpponentLine ;5 ; Waste some bytes (repeated code), but faster
@@ -1648,11 +1647,20 @@ LoadCarSpritesFromIds ; The pointers are reversed every frame, opponent car has 
 	LDA CarIdToSpriteAddressH,Y
 	STA CarSpritePointerH
 ConfigureOpponentCarSprite
+    LDA Tmp4
+    BEQ UseDefaultOppoentCarSprite
+OverrideOpponentCarSprite
+    STA EnemyCarSpritePointerL
+    LDA Tmp5
+    STA EnemyCarSpritePointerH
+    JMP ReturnFromConfigureCarSprite
+UseDefaultOppoentCarSprite
 	LDY Tmp1
 	LDA EnemyCarIdToSpriteAddressL,Y
 	STA EnemyCarSpritePointerL
 	LDA EnemyCarIdToSpriteAddressH,Y
 	STA EnemyCarSpritePointerH
+ReturnFromConfigureCarSprite
     RTS
 
 ; From http://www.6502.org/source/integers/hex2dec-more.htm
@@ -1711,8 +1719,8 @@ Player1IsOpponent ; Code could be reused?
     STA Tmp1
     LDA Traffic0Msb
     SBC OpTraffic0Msb
-    STA Tmp2
-    JMP StoreInFrontPlayer
+    STA IsOpponentInFront
+    JMP CalculateOpponentVisibility
 Player0IsOpponent
     LDA OpTrafficOffset0 + 1
     SBC TrafficOffset0 + 1
@@ -1722,29 +1730,61 @@ Player0IsOpponent
     STA Tmp1
     LDA OpTraffic0Msb
     SBC Traffic0Msb
-    STA Tmp2
-
-StoreInFrontPlayer
     STA IsOpponentInFront
 
-AddOffsetToOpponentLine
+CalculateOpponentVisibility
+    LDA Tmp1
+    ORA IsOpponentInFront
+    BEQ OpponentVisibleBehind ; 2 MSB are all zero
+
+    LDA Tmp1
+    AND IsOpponentInFront
+    CMP #%11111111
+    BEQ OpponentVisibleInFront ; 2 MSB are all one
+
+OpponentNotVisible
+    LDA #0
+    STA Tmp4
+    STA Tmp5
+    LDA #$FF
+    STA OpponentLine
+    BNE ReturnFromProcessOpponentLine
+
+OpponentVisibleBehind
+    LDA Tmp0
+    BMI OpponentVisibleInBehindNegativeNumber
+    CMP #13
+    BCC OpponentFullyVisible ; A is Greater or equal
+OpponentVisibleInBehindNegativeNumber
+    LDA #3
+    STA OpponentLine
+    LDA #<ArrowDownSprite
+    STA Tmp4
+    LDA #>ArrowDownSprite
+    STA Tmp5
+    BNE ReturnFromProcessOpponentLine ; Always jump
+
+OpponentVisibleInFront
+    LDA Tmp0
+    BPL OpponentVisibleInFrontPositiveNumber
+    CMP #-58
+    BPL OpponentFullyVisible ; A more than
+OpponentVisibleInFrontPositiveNumber
+    LDA #3
+    STA OpponentLine
+    LDA #<ArrowUpSprite
+    STA Tmp4
+    LDA #>ArrowUpSprite
+    STA Tmp5
+    BNE ReturnFromProcessOpponentLine ; Alwys jump
+
+OpponentFullyVisible
+    LDA #0
+    STA Tmp4
+    STA Tmp5
     CLC
     LDA Tmp0
     ADC #(GAMEPLAY_AREA - CAR_SIZE)
-    STA Tmp0
-    LDA Tmp1
-    ADC #0
-    STA Tmp1 ; Needed to test with the result in A
-    LDA Tmp2
-    ADC #0
-    ORA Tmp1
-    BEQ OpponentVisible ; Less than 128 diff.
-OpponentNotVisible
-    LDA #$FF ; For now, just removing from screen
-    STA OpponentLine
-    JMP ReturnFromProcessOpponentLine
-OpponentVisible
-    LDA Tmp0
     STA OpponentLine
 ReturnFromProcessOpponentLine
     RTS
@@ -2897,6 +2937,19 @@ CarSprite3NoPadding
 	.byte #%00111100
 	.byte #%01011010
 	.byte #%00111100
+
+ArrowUpSprite
+	.byte #%11111111
+	.byte #%01111110
+	.byte #%00111100
+	.byte #%00011000
+
+ArrowDownSprite
+    .byte #%00011000
+	.byte #%00111100
+	.byte #%01111110
+    .byte #%11111111
+	
 
 TrafficSpeeds
 	.byte #$00;  Trafic0 L
