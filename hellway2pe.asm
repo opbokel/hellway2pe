@@ -1305,7 +1305,9 @@ SoundEffects ; 71 More speed = smaller frequency divider. Just getting speed use
 	BEQ EngineSound ;2
 	CMP #WARN_TIME_ENDING ;2
 	BCC PlayWarnTimeEnding ;4
-	JMP EngineSound ;3
+    LDA GameStatus ; Mute while game not running
+    BNE EngineSound
+	JMP MuteSound ;3
 PlayColision
 	LDA #31
 	STA AUDF0,X
@@ -1707,11 +1709,11 @@ OpponentNotVisible
 
 OpponentVisibleBehind
     LDA Tmp0
-    BMI OpponentVisibleInBehindNegativeNumber
+    BMI OpponentVisibleBehindNegativeNumber
     CMP #13
     BCC OpponentFullyVisible ; A is Greater or equal
-OpponentVisibleInBehindNegativeNumber
-    LDA #68
+OpponentVisibleBehindNegativeNumber
+    LDA #51
     STA OpponentLine
     STA Tmp4 ; Use sprite override
     LDA #<ArrowDownSprite
@@ -1726,7 +1728,7 @@ OpponentVisibleInFront
     CMP #-58
     BPL OpponentFullyVisible ; A more than
 OpponentVisibleInFrontPositiveNumber
-    LDA #3
+    LDA #4
     STA OpponentLine
     STA Tmp4 ; Use sprite override
     LDA #<ArrowUpSprite
@@ -2929,17 +2931,19 @@ CarSprite3NoPadding
     ds 1 ; Car start line is wrong, I would have to change all constants, for the others the existing padding solves. Waste 1 byte, save sanity!
 
 ArrowUpSprite
-	.byte #%11111111
+    .byte #%00011000
+    .byte #%00011000
 	.byte #%01111110
 	.byte #%00111100
 	.byte #%00011000
 
 ArrowDownSprite
-    ds 3
+    ds 2
     .byte #%00011000
 	.byte #%00111100
 	.byte #%01111110
-    .byte #%11111111
+    .byte #%00011000
+    .byte #%00011000
 	
 
 TrafficSpeeds
