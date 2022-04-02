@@ -2887,7 +2887,7 @@ BuildNumberText
     .byte #<CB + #FONT_OFFSET
 	.byte #<C0 + #FONT_OFFSET
 	.byte #<C9 + #FONT_OFFSET
-	.byte #<C7 + #FONT_OFFSET 
+	.byte #<C8 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET

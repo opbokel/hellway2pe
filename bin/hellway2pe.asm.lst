@@ -560,7 +560,7 @@
     185  f000		       00 d9	   EnemyCarSpritePointerL =	$D9
     186  f000		       00 da	   EnemyCarSpritePointerH =	$DA
     187  f000
-    188  f000		       00 db	   EnableRubberBadding =	$DB	; Used for Score, so it cannot be cheated.
+    188  f000		       00 db	   EnableRubberBadding =	$DB
     189  f000
     190  f000		       00 dc	   AccelerateBuffer =	$DC	; Change speed on buffer overflow.
     191  f000		       00 dd	   OpAccelerateBuffer =	$DD	; Change speed on buffer overflow.
@@ -3447,7 +3447,7 @@
    2887  ff21		       3b		      .byte.b	#<CB + #FONT_OFFSET
    2888  ff22		       04		      .byte.b	#<C0 + #FONT_OFFSET
    2889  ff23		       31		      .byte.b	#<C9 + #FONT_OFFSET
-   2890  ff24		       27		      .byte.b	#<C7 + #FONT_OFFSET
+   2890  ff24		       2c		      .byte.b	#<C8 + #FONT_OFFSET
    2891  ff25
    2892  ff25				   ReadyText
    2893  ff25		       8b		      .byte.b	#<CR + #FONT_OFFSET
