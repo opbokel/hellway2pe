@@ -52,7 +52,9 @@ TRAFFIC_CHANCE_RUSH_HOUR = 44
 CHECKPOINT_TIME_RUSH_HOUR = 44
 TRAFFIC_COLOR_RUSH_HOUR = $09
 
-BACKGROUND_COLOR = $00 ;It is all dark mode now
+BACKGROUND_COLOR = $00
+
+GREY_BACKGROUND_COLOR = $03
 
 SCORE_FONT_COLOR_GOOD = $37
 OP_SCORE_FONT_COLOR_GOOD = $D8
@@ -183,7 +185,7 @@ CarSpritePointerH = $D8
 EnemyCarSpritePointerL = $D9
 EnemyCarSpritePointerH = $DA
 
-StartSWCHB = $DB ; Used for Score, so it cannot be cheated.
+EnableRubberBadding = $DB 
 
 AccelerateBuffer = $DC ; Change speed on buffer overflow.
 OpAccelerateBuffer = $DD ; Change speed on buffer overflow.
@@ -195,6 +197,9 @@ Player1SpeedH = $F1
 
 IsOpponentInFront = $F2 ; Bit 7 tells if negative or positive.
 
+BackgroundColor = $F3
+
+
 ;generic start up stuff, put zero in almost all...
 BeforeStart ;All variables that are kept on game reset or select
 	LDY #0
@@ -204,9 +209,9 @@ BeforeStart ;All variables that are kept on game reset or select
 	STY GameStatus
     STY CurrentCarId
     STY OpCurrentCarId
+    STY EnableRubberBadding ; Triggered to 1 on first run
 	LDY #16
 	STY GameMode
-	LDY #CURRENT_CAR_MASK ; Also the max id.
 
 Start
 	LDA #2
@@ -238,15 +243,21 @@ CleanMem
 	BEQ SkipClean
 	CPX #GameStatus
 	BEQ SkipClean
+    CPX #EnableRubberBadding
+    BEQ SkipClean
 	STA 0,X		
 SkipClean	
 	INX
 	BNE CleanMem
 
-	LDA #202 ; needs change if memory clean routine changes
+	LDA #190 ; needs change if memory clean routine changes
 	STA TIM64T ;3	
 
 ;Setting some variables...
+
+SaveOldDifficulty
+    LDA CurrentDifficulty
+    STA Tmp5 ; Used to define if toggles rubberband
 
 SettingTrafficOffsets; Time sensitive with player H position
 	STA WSYNC ;We will set player position
@@ -259,7 +270,6 @@ SettingTrafficOffsets; Time sensitive with player H position
 	;SLEEP 11;18
 	LDX #0
 	LDA SWCHB ; Reading the switches and mapping to difficulty id
-	STA StartSWCHB ; For game over
 	AND #%11000000
 	BEQ StoreCurrentDifficulty
 	INX
@@ -277,6 +287,16 @@ StoreCurrentDifficulty
 	JSR ConfigureDifficulty
     INX
 	JSR ConfigureDifficulty
+
+ToggleRubberBanding
+    LDA GameStatus
+    BNE SetGameNotRunning ; Do not toggle if game running
+    LDA Tmp5 ; old difficulty
+    CMP CurrentDifficulty
+    BNE SetGameNotRunning ; Do not toggle if change difficulty
+    LDA EnableRubberBadding
+    EOR #%00000001
+    STA EnableRubberBadding
 
 SetGameNotRunning
 	LDA #0
@@ -344,9 +364,17 @@ MainLoop
     STA HMOVE  ;2 Apply Movement, must be done after a WSYNC
     ;Some free cycles here!
 PrepareMaxHMove
-    LDA #BACKGROUND_COLOR; Restores the black blackground (because of QR), here only for optimization
+    LDA SWCHB
+    AND #%00001000
+    BEQ GreyBackground
+    LDA #BACKGROUND_COLOR
+    JMP StoreBackground
+GreyBackground
+    LDA #GREY_BACKGROUND_COLOR;
+StoreBackground
 	STA COLUBK
-    SLEEP 24 - 11 ; Ensures "Should not be modified during the 24 computer cycles immediately following an HMOVE" 11 is the minimun cycles used until here
+    STA BackgroundColor
+    SLEEP 24 - 15 ; Ensures "Should not be modified during the 24 computer cycles immediately following an HMOVE" 11 is the minimun cycles used until here
     LDA #$80
     STA HMBL
 	STA HMM0
@@ -478,8 +506,7 @@ CallProcessFontColor
     LDA FrameCount0
     AND #%00000001
     BNE ContinueProcessFontColorPlayer0 ; Not my frame, always process!
-    LDA SWCHB ; Rubber Band Switch
-    AND #%00001000
+    LDA EnableRubberBadding ; Rubber Band Switch
     BEQ ContinueProcessFontColorPlayer0
     LDA IsOpponentInFront
     BEQ ContinueProcessFontColorPlayer0 ; Oponent not in front
@@ -493,8 +520,7 @@ ContinueProcessIsToUpdateColorPlayer1
     LDA FrameCount0
     AND #%00000001
     BEQ ContinueProcessFontColorPlayer1 ; Not my frame, always process!
-    LDA SWCHB ; Rubber Band Switch
-    AND #%00001000
+    LDA EnableRubberBadding ; Rubber Band Switch
     BEQ ContinueProcessFontColorPlayer1
     LDA IsOpponentInFront
     BEQ ContinueProcessFontColorPlayer1 ; Oponent not in front
@@ -693,8 +719,7 @@ PrintYearText
 PrintRightIntro
 	JSR PrintStaticText
 PipeOnRuberBandOff
-    LDA SWCHB
-	AND #%00001000
+    LDA EnableRubberBadding
     BNE EndPrintHellwayRight
     LDA #<Pipe + FONT_OFFSET
     STA ScoreD0
@@ -791,13 +816,13 @@ ConfigurePFForScore
 RightScoreOn
 	LDA OpScoreFontColor
 	STA COLUP1
-	LDA #BACKGROUND_COLOR
+	LDA BackgroundColor
 	STA COLUP0
 	JMP CallWaitForVblankEnd
 LeftScoreOn
 	LDA ScoreFontColor
 	STA COLUP0
-	LDA #BACKGROUND_COLOR
+	LDA BackgroundColor
 	STA COLUP1
 
 ; After here we are going to update the screen, No more heavy code
