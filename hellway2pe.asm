@@ -833,10 +833,7 @@ CallWaitForVblankEnd
 DrawScoreHud
 	JSR PrintScore
 
-; 4 lines to go crazy
 	STA WSYNC
-    ;STA HMOVE
-
 	STA WSYNC
     STA HMOVE
 
@@ -1166,18 +1163,24 @@ WhileScanLoop
 FinishScanLoop ; 7 209 of 222
 
 	STA WSYNC ;3 Draw the last line, without wrapping
-	JSR LoadAll
-	STA WSYNC ; do stuff!
+    LDA #0 ; Remove border on last line
+    STA PF0
+    STA PF2
+    LDA GRP0Cache ;3
+	STA GRP0      ;3
+	LDA GRP1Cache ;3
+	STA GRP1      ;3
+	JSR LoadBallAndMissile
 	STA WSYNC
+    ; do stuff!
 	STA WSYNC
 
 PrepareOverscan
 	LDA #2		
 	STA WSYNC  
-    ;STA HMOVE	; HMOVE 10
 	STA VBLANK 	
 	
-	LDA #6 ; 2 more lines before overscan (was 37)...
+	LDA #7
 	STA TIM64T	
 
     STA HMCLR ; Before we process car movement
@@ -1432,7 +1435,7 @@ ClearPFSkipLDA0
 	RTS ;6
 EndClearAll
 
-LoadAll ; 48
+LoadPlayfield ; 54
 	LDA PF0Cache  ;3
 	STA PF0		  ;3
 	
@@ -1442,9 +1445,10 @@ LoadAll ; 48
 	LDA PF2Cache ;3
 	STA PF2      ;3
 
-	LDA GRP1Cache ;3
-	STA GRP1      ;3
+    RTS ; 6
+EndLoadPlayfield
 
+LoadBallAndMissile
 	LDA ENABLCache ;3
 	STA ENABL      ;3
 
@@ -1455,7 +1459,7 @@ LoadAll ; 48
 	STA ENAM1      ;3
 
 	RTS ;6
-EndLoadAll
+EndLoadBallAndMissile
 
 NextDifficulty ;Is a SBR
 	LDA GameMode ; For now, even games change the difficult
@@ -1611,7 +1615,7 @@ DrawScoreD4 ; 20
 
 	STA WSYNC
     STA HMOVE
-	JSR LoadAll
+	JSR LoadPlayfield
 	RTS ; 6
 
 WaitForVblankEnd
@@ -1631,13 +1635,6 @@ Sleep4Lines
 Sleep8Lines
 	JSR Sleep4Lines
 	JSR Sleep4Lines
-	RTS
-
-Sleep32Lines
-	JSR Sleep8Lines
-	JSR Sleep8Lines
-	JSR Sleep8Lines
-	JSR Sleep8Lines
 	RTS
 
 ;X = number of WSYNC HMOVE to run
@@ -1736,7 +1733,7 @@ OpponentNotVisible
 OpponentVisibleBehind
     LDA Tmp0
     BMI OpponentVisibleBehindNegativeNumber
-    CMP #13
+    CMP #14
     BCC OpponentFullyVisible ; A is Greater or equal
 OpponentVisibleBehindNegativeNumber
     LDA #51
@@ -2250,7 +2247,14 @@ EndQrCodeLoop
 	STA PF1  ;3
 	STA PF2  ;3
 
-	JSR Sleep32Lines
+    ;Sleeps 31 lines
+	JSR Sleep8Lines
+    JSR Sleep8Lines
+    JSR Sleep8Lines
+    JSR Sleep4Lines
+    STA WSYNC
+    STA WSYNC
+    STA WSYNC
 	JMP PrepareOverscan
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
