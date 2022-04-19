@@ -2888,10 +2888,10 @@ LoseText
 
 BuildNumberText
     .byte #<Space + #FONT_OFFSET
-    .byte #<CB + #FONT_OFFSET
-	.byte #<C0 + #FONT_OFFSET
+    .byte #<C0 + #FONT_OFFSET
 	.byte #<CP + #FONT_OFFSET
-	.byte #<CH + #FONT_OFFSET 
+	.byte #<CH + #FONT_OFFSET
+	.byte #<C2 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET
