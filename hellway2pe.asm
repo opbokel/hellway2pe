@@ -1501,9 +1501,14 @@ RandomDifficulty ; Might bug if both players cross at the same time, it is a fea
     BEQ ReturnFromNextDifficulty ; Special case, just use the default level difficulty.
 	LDY FrameCount0
 	LDA AesTable,Y
-	;EOR TrafficChance, no need, lets make life simple
-	AND #%00111111
-	STA TrafficChance,X ; Cache winning player chance and use
+	;31 x 1.5 + 6 [4 to 50]
+	AND #%00011111 ;[0 to 31]
+	STA Tmp4 ; Cache winning player chance and use
+    LSR ; divade by 2
+    CLC
+    ADC Tmp4 
+    ADC #4
+    STA TrafficChance,X ; Cache winning player chance and use
     JMP ReturnFromNextDifficulty
 UseOpponentChance
     TXA
@@ -2891,7 +2896,7 @@ BuildNumberText
     .byte #<C0 + #FONT_OFFSET
 	.byte #<CP + #FONT_OFFSET
 	.byte #<CH + #FONT_OFFSET
-	.byte #<C2 + #FONT_OFFSET 
+	.byte #<C3 + #FONT_OFFSET 
 
 ReadyText
     .byte #<CR + #FONT_OFFSET
