@@ -1173,15 +1173,14 @@ FinishScanLoop ; 7 209 of 222
 	JSR LoadBallAndMissile
 	STA WSYNC
     ; do stuff!
-	STA WSYNC
-    STA WSYNC
+	;STA WSYNC
 
 PrepareOverscan
 	LDA #2		
 	STA WSYNC  
 	STA VBLANK 	
 	
-	LDA #6
+	LDA #8
 	STA TIM64T	
 
     STA HMCLR ; Before we process car movement
@@ -2260,8 +2259,7 @@ EndQrCodeLoop
     JSR Sleep4Lines
     STA WSYNC
     STA WSYNC
-    STA WSYNC
-    STA WSYNC
+    ;STA WSYNC
 	JMP PrepareOverscan
 
 ;ALL CONSTANTS FROM HERE (The QrCode routine is the only exception), ALIGN TO AVOID CARRY
