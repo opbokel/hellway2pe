@@ -2020,13 +2020,13 @@
    1501  f752		       f0 24		      BEQ	ReturnFromNextDifficulty	; Special case, just use the default level difficulty.
    1502  f754		       a4 8c		      LDY	FrameCount0
    1503  f756		       b9 00 fe 	      LDA	AesTable,Y
-   1504  f759							;31 x 1.5 + 6 [4 to 50]
+   1504  f759							;31 x 1.5 + 6 [5 to 51]
    1505  f759		       29 1f		      AND	#%00011111	;[0 to 31]
    1506  f75b		       85 b4		      STA	Tmp4	; Cache winning player chance and use
    1507  f75d		       4a		      LSR		; divade by 2
    1508  f75e		       18		      CLC
    1509  f75f		       65 b4		      ADC	Tmp4
-   1510  f761		       69 04		      ADC	#4
+   1510  f761		       69 05		      ADC	#5
    1511  f763		       95 be		      STA	TrafficChance,X	; Cache winning player chance and use
    1512  f765		       4c 78 f7 	      JMP	ReturnFromNextDifficulty
    1513  f768				   UseOpponentChance
