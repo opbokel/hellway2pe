@@ -116,10 +116,10 @@ CH                       fd55              (R )
 CheckIfAlreadyMaxSpeed   fa76                  
 CheckMinSpeed            fa30                  
 CHECKPOINT_INTERVAL      0010              (R )
-CHECKPOINT_TIME_INTENSE  0026              (R )
+CHECKPOINT_TIME_INTENSE  0027              (R )
 CHECKPOINT_TIME_LIGHT    001d              (R )
 CHECKPOINT_TIME_REGULAR  0022              (R )
-CHECKPOINT_TIME_RUSH_HOUR 002b              (R )
+CHECKPOINT_TIME_RUSH_HOUR 002c              (R )
 CheckpointText           ff00              (R )
 CheckpointTime           00c0              (R )
 CheckRandomDifficulty    f744              (R )

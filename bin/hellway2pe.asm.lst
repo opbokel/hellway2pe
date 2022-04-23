@@ -420,11 +420,11 @@
      45  f000		       00 34	   TRAFFIC_COLOR_REGULAR =	$34
      46  f000
      47  f000		       00 21	   TRAFFIC_CHANCE_INTENSE =	33
-     48  f000		       00 26	   CHECKPOINT_TIME_INTENSE =	38
+     48  f000		       00 27	   CHECKPOINT_TIME_INTENSE =	39
      49  f000		       00 79	   TRAFFIC_COLOR_INTENSE =	$79
      50  f000
      51  f000		       00 2a	   TRAFFIC_CHANCE_RUSH_HOUR =	42
-     52  f000		       00 2b	   CHECKPOINT_TIME_RUSH_HOUR =	43
+     52  f000		       00 2c	   CHECKPOINT_TIME_RUSH_HOUR =	44
      53  f000		       00 09	   TRAFFIC_COLOR_RUSH_HOUR =	$09
      54  f000
      55  f000		       00 00	   BACKGROUND_COLOR =	$00
@@ -3635,8 +3635,8 @@
    3075  ffbd				   TrafficTimeTable
    3076  ffbd		       1d		      .byte.b	#CHECKPOINT_TIME_LIGHT
    3077  ffbe		       22		      .byte.b	#CHECKPOINT_TIME_REGULAR
-   3078  ffbf		       26		      .byte.b	#CHECKPOINT_TIME_INTENSE
-   3079  ffc0		       2b		      .byte.b	#CHECKPOINT_TIME_RUSH_HOUR
+   3078  ffbf		       27		      .byte.b	#CHECKPOINT_TIME_INTENSE
+   3079  ffc0		       2c		      .byte.b	#CHECKPOINT_TIME_RUSH_HOUR
    3080  ffc1		       1d		      .byte.b	#CHECKPOINT_TIME_LIGHT	; For cycling, makes code easier
    3081  ffc2
    3082  ffc2
